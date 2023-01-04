@@ -34,6 +34,7 @@ export class Lox {
 
   static async runPrompt() {
     const rl = readline.createInterface({ input, output, prompt: "> " });
+    rl.prompt();
 
     rl.on("line", (line) => {
       Lox.run(line);
