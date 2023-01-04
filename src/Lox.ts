@@ -4,18 +4,18 @@ import * as readline from "node:readline/promises";
 import { Scanner } from "./Scanner";
 
 export class Lox {
-  static error(line: number, message: string) {
+  static error(line: number, message: string): void {
     Lox.report(line, "", message);
   }
 
   static hadError = false;
 
-  static report(line: number, where: string, message: string) {
+  static report(line: number, where: string, message: string): void {
     console.error(`[line ${line}] Error${where} ${message}`);
     Lox.hadError = true;
   }
 
-  static run(source: string) {
+  static run(source: string): void {
     const scanner = new Scanner(source);
     const tokens = scanner.scanTokens(); // TODO: use iterator
 
@@ -24,7 +24,7 @@ export class Lox {
     }
   }
 
-  static runFile(path: string) {
+  static runFile(path: string): void {
     Lox.run(readFileSync(path, { encoding: "utf-8" }));
 
     if (Lox.hadError) {
@@ -32,7 +32,7 @@ export class Lox {
     }
   }
 
-  static async runPrompt() {
+  static runPrompt(): void {
     const rl = readline.createInterface({
       input: stdin,
       output: stdout,
@@ -49,7 +49,7 @@ export class Lox {
     });
   }
 
-  static main(args: string[]) {
+  static main(args: string[]): void {
     if (args.length > 3) {
       console.error("Usage: tslox [script]\n");
       exit(64);
