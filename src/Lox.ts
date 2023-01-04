@@ -11,7 +11,7 @@ export class Lox {
   static hadError = false;
 
   static report(line: number, where: string, message: string) {
-    console.error(`[line ${line}] Error${where}" ${message}`);
+    console.error(`[line ${line}] Error${where} ${message}`);
     Lox.hadError = true;
   }
 
@@ -33,7 +33,11 @@ export class Lox {
   }
 
   static async runPrompt() {
-    const rl = readline.createInterface({ input: stdin, output: stdout, prompt: "> " });
+    const rl = readline.createInterface({
+      input: stdin,
+      output: stdout,
+      prompt: "> ",
+    });
     rl.prompt();
 
     rl.on("line", (line) => {
