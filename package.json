@@ -4,11 +4,13 @@
   "source": "src/main.ts",
   "main": "dist/main.js",
   "scripts": {
+    "start": "node dist/main.js",
     "watch": "parcel watch",
     "build": "parcel build",
-    "lint": "eslint",
+    "lint": "eslint && prettier --check .",
     "check": "tsc --noEmit",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "ci": "npm run lint && npm run check"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.48.0",
