@@ -5,9 +5,18 @@
   "main": "dist/main.js",
   "scripts": {
     "watch": "parcel watch",
-    "build": "parcel build"
+    "build": "parcel build",
+    "lint": "eslint",
+    "check": "tsc --noEmit",
+    "format": "prettier --write ."
   },
   "devDependencies": {
-    "parcel": "^2.8.2"
+    "@typescript-eslint/eslint-plugin": "^5.48.0",
+    "@typescript-eslint/parser": "^5.48.0",
+    "eslint": "^8.31.0",
+    "parcel": "^2.8.2",
+    "prettier": "^2.8.1",
+    "tsc": "^2.0.4",
+    "typescript": "^4.9.4"
   }
 }
