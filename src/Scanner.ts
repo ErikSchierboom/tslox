@@ -1,5 +1,5 @@
 import { Lox } from "./Lox";
-import { Token, TokenType } from "./TokenType";
+import { Token, TokenType } from "./Tokens";
 
 export class Scanner {
   static keywords: { [key: string]: TokenType } = {

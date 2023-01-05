@@ -8,7 +8,8 @@
     "lint": "eslint && prettier --check .",
     "check": "tsc --noEmit",
     "format": "prettier --write .",
-    "ci": "npm run lint && npm run check"
+    "ci": "npm run lint && npm run check",
+    "generate-ast": "esbuild bin/generate-ast.ts --outfile=dist/generate-ast.js --bundle --platform=node && node dist/generate-ast.js && prettier --write src/Ast.ts"
   },
   "devDependencies": {
     "@types/node": "^18.11.18",
