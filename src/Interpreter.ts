@@ -1,3 +1,4 @@
+import { Environment } from "./Environment";
 import {
   BinaryExpr,
   Expr,
@@ -5,13 +6,17 @@ import {
   LiteralExpr,
   UnaryExpr,
   ExprVisitor,
+  VariableExpr,
+  AssignExpr,
 } from "./Expr";
 import { Lox } from "./Lox";
 import { RuntimeError } from "./RuntimeError";
-import { ExpressionStmt, PrintStmt, Stmt, StmtVisitor } from "./Stmt";
+import { ExpressionStmt, PrintStmt, Stmt, StmtVisitor, VarStmt } from "./Stmt";
 import { Token } from "./Tokens";
 
 export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
+  private readonly environment = new Environment();
+
   interpret(statements: Stmt[]): void {
     try {
       for (const statement of statements) {
@@ -34,6 +39,13 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     return expr.accept(this);
   }
 
+  visitVarStmt(stmt: VarStmt): void {
+    const value =
+      stmt.initializer === null ? null : this.evaluate(stmt.initializer);
+
+    this.environment.define(stmt.name.lexeme, value);
+  }
+
   visitExpressionStmt(stmt: ExpressionStmt): void {
     this.evaluate(stmt.expression);
   }
@@ -41,6 +53,16 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
   visitPrintStmt(stmt: PrintStmt): void {
     const value = this.evaluate(stmt.expression);
     console.log(this.stringify(value));
+  }
+
+  visitAssignExpr(expr: AssignExpr): any {
+    const value = this.evaluate(expr.value);
+    this.environment.assign(expr.name, value);
+    return value;
+  }
+
+  visitVariableExpr(expr: VariableExpr): any {
+    return this.environment.get(expr.name);
   }
 
   visitBinaryExpr(expr: BinaryExpr): any {

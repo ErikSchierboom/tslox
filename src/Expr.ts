@@ -5,10 +5,22 @@ export abstract class Expr {
 }
 
 export interface ExprVisitor<T> {
+  visitAssignExpr(expr: AssignExpr): T;
   visitBinaryExpr(expr: BinaryExpr): T;
   visitGroupingExpr(expr: GroupingExpr): T;
   visitLiteralExpr(expr: LiteralExpr): T;
+  visitVariableExpr(expr: VariableExpr): T;
   visitUnaryExpr(expr: UnaryExpr): T;
+}
+
+export class AssignExpr extends Expr {
+  constructor(readonly name: Token, readonly value: Expr) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitAssignExpr(this);
+  }
 }
 
 export class BinaryExpr extends Expr {
@@ -42,6 +54,16 @@ export class LiteralExpr extends Expr {
 
   accept<T>(visitor: ExprVisitor<T>): T {
     return visitor.visitLiteralExpr(this);
+  }
+}
+
+export class VariableExpr extends Expr {
+  constructor(readonly name: Token) {
+    super();
+  }
+
+  accept<T>(visitor: ExprVisitor<T>): T {
+    return visitor.visitVariableExpr(this);
   }
 }
 

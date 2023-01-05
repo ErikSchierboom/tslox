@@ -1,6 +1,14 @@
-import { BinaryExpr, Expr, GroupingExpr, LiteralExpr, UnaryExpr } from "./Expr";
+import {
+  AssignExpr,
+  BinaryExpr,
+  Expr,
+  GroupingExpr,
+  LiteralExpr,
+  UnaryExpr,
+  VariableExpr,
+} from "./Expr";
 import { Lox } from "./Lox";
-import { ExpressionStmt, PrintStmt, Stmt } from "./Stmt";
+import { ExpressionStmt, PrintStmt, Stmt, VarStmt } from "./Stmt";
 import { Token, TokenType } from "./Tokens";
 
 export class ParseError extends Error {}
@@ -10,14 +18,36 @@ export class Parser {
 
   constructor(private readonly tokens: Token[]) {}
 
-  parse(): Stmt[] {
+  parse(): (Stmt | null)[] {
     const statements = [];
 
     while (!this.isAtEnd()) {
-      statements.push(this.statement());
+      statements.push(this.declaration());
     }
 
     return statements;
+  }
+
+  private declaration(): Stmt | null {
+    try {
+      if (this.match("VAR")) return this.varDeclaration();
+      return this.statement();
+    } catch (error) {
+      if (error instanceof ParseError) {
+        this.synchronize();
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  private varDeclaration(): Stmt {
+    const name = this.consume("IDENTIFIER", "Expect variable name.");
+    const initializer = this.match("EQUAL") ? this.expression() : null;
+
+    this.consume("SEMICOLON", "Expect ';' after variable declaration.");
+    return new VarStmt(name, initializer);
   }
 
   private statement(): Stmt {
@@ -39,7 +69,25 @@ export class Parser {
   }
 
   private expression(): Expr {
-    return this.equality();
+    return this.assignment();
+  }
+
+  private assignment(): Expr {
+    const expr = this.equality();
+
+    if (this.match("EQUAL")) {
+      const equals = this.previous();
+      const value = this.assignment();
+
+      if (expr instanceof VariableExpr) {
+        const name = expr.name;
+        return new AssignExpr(name, value);
+      }
+
+      this.error(equals, "Invalid assignment target.");
+    }
+
+    return expr;
   }
 
   private equality(): Expr {
@@ -107,6 +155,10 @@ export class Parser {
 
     if (this.match("NUMBER", "STRING")) {
       return new LiteralExpr(this.previous().literal);
+    }
+
+    if (this.match("IDENTIFIER")) {
+      return new VariableExpr(this.previous());
     }
 
     if (this.match("LEFT_PAREN")) {
