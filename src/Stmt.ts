@@ -11,6 +11,7 @@ export interface StmtVisitor<T> {
   visitExpressionStmt(stmt: ExpressionStmt): T;
   visitIfStmt(stmt: IfStmt): T;
   visitPrintStmt(stmt: PrintStmt): T;
+  visitWhileStmt(stmt: WhileStmt): T;
 }
 
 export class BlockStmt extends Stmt {
@@ -64,5 +65,15 @@ export class PrintStmt extends Stmt {
 
   accept<T>(visitor: StmtVisitor<T>): T {
     return visitor.visitPrintStmt(this);
+  }
+}
+
+export class WhileStmt extends Stmt {
+  constructor(readonly condition: Expr, readonly body: Stmt) {
+    super();
+  }
+
+  accept<T>(visitor: StmtVisitor<T>): T {
+    return visitor.visitWhileStmt(this);
   }
 }

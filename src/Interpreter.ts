@@ -20,6 +20,7 @@ import {
   Stmt,
   StmtVisitor,
   VarStmt,
+  WhileStmt,
 } from "./Stmt";
 import { Token } from "./Tokens";
 
@@ -46,6 +47,12 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
 
   private evaluate(expr: Expr): any {
     return expr.accept(this);
+  }
+
+  visitWhileStmt(stmt: WhileStmt): void {
+    while (this.isTruthy(this.evaluate(stmt.condition))) {
+      this.execute(stmt.body);
+    }
   }
 
   visitIfStmt(stmt: IfStmt): void {

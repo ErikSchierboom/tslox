@@ -97,6 +97,7 @@ defineAst(
     "Expression: Expr expression",
     "If:         Expr condition, Stmt thenBranch, Stmt|null elseBranch",
     "Print:      Expr expression",
+    "While:      Expr condition, Stmt body",
   ],
   ['import { Expr } from "./Expr";', 'import { Token } from "./Tokens";']
 );

@@ -16,6 +16,7 @@ import {
   PrintStmt,
   Stmt,
   VarStmt,
+  WhileStmt,
 } from "./Stmt";
 import { Token, TokenType } from "./Tokens";
 
@@ -59,11 +60,62 @@ export class Parser {
   }
 
   private statement(): Stmt {
+    if (this.match("FOR")) return this.forStatement();
     if (this.match("IF")) return this.ifStatement();
     if (this.match("PRINT")) return this.printStatement();
+    if (this.match("WHILE")) return this.whileStatement();
     if (this.match("LEFT_BRACE")) return new BlockStmt(this.block());
 
     return this.expressionStatement();
+  }
+
+  private forStatement(): Stmt {
+    this.consume("LEFT_PAREN", "Expect '(' after 'for'.");
+
+    let initializer: Stmt | null;
+    if (this.match("SEMICOLON")) {
+      initializer = null;
+    } else if (this.match("VAR")) {
+      initializer = this.varDeclaration();
+    } else {
+      initializer = this.expressionStatement();
+    }
+
+    let condition: Expr | null = null;
+    if (!this.check("SEMICOLON")) {
+      condition = this.expression();
+    }
+    this.consume("SEMICOLON", "Expect ';' after 'for' loop condition.");
+
+    let increment: Expr | null = null;
+    if (!this.check("RIGHT_PAREN")) {
+      increment = this.expression();
+    }
+    this.consume("RIGHT_PAREN", "Expect ')' after 'for' clauses.");
+
+    let body = this.statement();
+
+    if (increment != null) {
+      body = new BlockStmt([body, new ExpressionStmt(increment)]);
+    }
+
+    if (condition == null) condition = new LiteralExpr(true);
+    body = new WhileStmt(condition, body);
+
+    if (initializer != null) {
+      body = new BlockStmt([initializer, body]);
+    }
+
+    return body;
+  }
+
+  private whileStatement(): Stmt {
+    this.consume("LEFT_BRACE", "Expect '(' after while.");
+    const condition = this.expression();
+    this.consume("RIGHT_BRACE", "Expect ')' after while condition.");
+
+    const body = this.statement();
+    return new WhileStmt(condition, body);
   }
 
   private ifStatement(): Stmt {
