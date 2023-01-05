@@ -5,13 +5,13 @@ export abstract class Expr {
 }
 
 export interface Visitor<T> {
-  visitBinaryExpr(expr: Binary): T;
-  visitGroupingExpr(expr: Grouping): T;
-  visitLiteralExpr(expr: Literal): T;
-  visitUnaryExpr(expr: Unary): T;
+  visitBinaryExpr(expr: BinaryExpr): T;
+  visitGroupingExpr(expr: GroupingExpr): T;
+  visitLiteralExpr(expr: LiteralExpr): T;
+  visitUnaryExpr(expr: UnaryExpr): T;
 }
 
-export class Binary extends Expr {
+export class BinaryExpr extends Expr {
   constructor(
     readonly left: Expr,
     readonly operator: Token,
@@ -25,7 +25,7 @@ export class Binary extends Expr {
   }
 }
 
-export class Grouping extends Expr {
+export class GroupingExpr extends Expr {
   constructor(readonly expression: Expr) {
     super();
   }
@@ -35,7 +35,7 @@ export class Grouping extends Expr {
   }
 }
 
-export class Literal extends Expr {
+export class LiteralExpr extends Expr {
   constructor(readonly value: Object) {
     super();
   }
@@ -45,7 +45,7 @@ export class Literal extends Expr {
   }
 }
 
-export class Unary extends Expr {
+export class UnaryExpr extends Expr {
   constructor(readonly operator: Token, readonly right: Expr) {
     super();
   }

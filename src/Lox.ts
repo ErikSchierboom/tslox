@@ -2,6 +2,9 @@ import { exit, stdin, stdout } from "node:process";
 import { readFileSync } from "node:fs";
 import * as readline from "node:readline/promises";
 import { Scanner } from "./Scanner";
+import { BinaryExpr, GroupingExpr, LiteralExpr, UnaryExpr } from "./Ast";
+import { Token } from "./Tokens";
+import { AstPrinter } from "./AstPrinter";
 
 export class Lox {
   static error(line: number, message: string): void {

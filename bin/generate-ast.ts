@@ -37,7 +37,7 @@ function defineType(
     .map((field) => `readonly ${field.split(" ")[1]}: ${field.split(" ")[0]}`)
     .join(", ");
 
-  writer.write(`export class ${className} extends ${baseName} {\n`);
+  writer.write(`export class ${className}${baseName} extends ${baseName} {\n`);
   writer.write(`  constructor(${parameterProperties}) {\n`);
   writer.write("    super()\n");
   writer.write("  }\n");
@@ -52,9 +52,9 @@ function defineVisitor(writer: WriteStream, baseName: string, types: string[]) {
   writer.write("export interface Visitor<T> {\n");
 
   for (const type of types) {
-    const className = type.split(":")[0].trim();
+    const className = `${type.split(":")[0].trim()}${baseName}`;
     writer.write(
-      `visit${className}${baseName}(${baseName.toLowerCase()}: ${className}): T;`
+      `visit${className}(${baseName.toLowerCase()}: ${className}): T;`
     );
     writer.write("\n");
   }
