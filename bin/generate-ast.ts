@@ -79,6 +79,7 @@ defineAst(
   [
     "Assign:   Token name, Expr value",
     "Binary:   Expr left, Token operator, Expr right",
+    "Call:     Expr callee, Token paren, Expr[] args",
     "Grouping: Expr expression",
     "Literal:  Literal value",
     "Logical:  Expr left, Token operator, Expr right",
