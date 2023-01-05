@@ -19,11 +19,11 @@ export class Parser {
     }
   }
 
-  expression(): Expr {
+  private expression(): Expr {
     return this.equality();
   }
 
-  equality(): Expr {
+  private equality(): Expr {
     let expr = this.comparison();
 
     while (this.match("BANG_EQUAL", "EQUAL_EQUAL")) {
@@ -35,7 +35,7 @@ export class Parser {
     return expr;
   }
 
-  comparison(): Expr {
+  private comparison(): Expr {
     let expr = this.term();
 
     while (this.match("GREATER", "GREATER_EQUAL", "LESS", "LESS_EQUAL")) {
@@ -47,7 +47,7 @@ export class Parser {
     return expr;
   }
 
-  term(): Expr {
+  private term(): Expr {
     let expr = this.factor();
 
     while (this.match("MINUS", "PLUS")) {
@@ -59,7 +59,7 @@ export class Parser {
     return expr;
   }
 
-  factor(): Expr {
+  private factor(): Expr {
     let expr = this.unary();
 
     while (this.match("SLASH", "STAR")) {
@@ -71,7 +71,7 @@ export class Parser {
     return expr;
   }
 
-  unary(): Expr {
+  private unary(): Expr {
     if (this.match("BANG", "MINUS")) {
       const operator = this.previous();
       const right = this.unary();
@@ -81,7 +81,7 @@ export class Parser {
     return this.primary();
   }
 
-  primary(): Expr {
+  private primary(): Expr {
     if (this.match("FALSE")) return new LiteralExpr(false);
     if (this.match("TRUE")) return new LiteralExpr(true);
     if (this.match("NIL")) return new LiteralExpr(null);
@@ -99,18 +99,18 @@ export class Parser {
     throw this.error(this.peek(), "Expect expression.");
   }
 
-  consume(type: TokenType, message: string): Token {
+  private consume(type: TokenType, message: string): Token {
     if (this.check(type)) return this.advance();
 
     throw this.error(this.peek(), message);
   }
 
-  error(token: Token, message: string): ParseError {
+  private error(token: Token, message: string): ParseError {
     Lox.error(token, message);
     return new ParseError();
   }
 
-  match(...types: TokenType[]): boolean {
+  private match(...types: TokenType[]): boolean {
     for (const type of types) {
       if (this.check(type)) {
         this.advance();
@@ -121,29 +121,29 @@ export class Parser {
     return false;
   }
 
-  advance(): Token {
+  private advance(): Token {
     if (!this.isAtEnd()) this.current++;
     return this.previous();
   }
 
-  check(type: TokenType): boolean {
+  private check(type: TokenType): boolean {
     if (this.isAtEnd()) return false;
     return this.peek().type == type;
   }
 
-  isAtEnd(): boolean {
+  private isAtEnd(): boolean {
     return this.peek().type == "EOF";
   }
 
-  peek(): Token {
+  private peek(): Token {
     return this.tokens[this.current];
   }
 
-  previous(): Token {
+  private previous(): Token {
     return this.tokens[this.current - 1];
   }
 
-  synchronize(): void {
+  private synchronize(): void {
     this.advance();
     while (!this.isAtEnd()) {
       if (this.previous().type == "SEMICOLON") return;

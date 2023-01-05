@@ -38,11 +38,7 @@ export class Scanner {
     return this.tokens;
   }
 
-  isAtEnd(): boolean {
-    return this.current >= this.source.length;
-  }
-
-  scanToken(): void {
+  private scanToken(): void {
     const c = this.advance();
     switch (c) {
       case "(":
@@ -117,7 +113,7 @@ export class Scanner {
     }
   }
 
-  number(): void {
+  private number(): void {
     while (this.isDigit(this.peek())) this.advance();
 
     if (this.peek() == "." && this.isDigit(this.peekNext())) {
@@ -132,12 +128,12 @@ export class Scanner {
     );
   }
 
-  peekNext(): string {
+  private peekNext(): string {
     if (this.current + 1 >= this.source.length) return "\0";
     return this.source.charAt(this.current + 1);
   }
 
-  identifier(): void {
+  private identifier(): void {
     while (this.isAlphaNumeric(this.peek())) this.advance();
 
     const text = this.source.substring(this.start, this.current);
@@ -146,19 +142,7 @@ export class Scanner {
     this.addToken(type);
   }
 
-  isAlpha(c: string): boolean {
-    return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c == "_";
-  }
-
-  isDigit(c: string): boolean {
-    return c >= "0" && c <= "9";
-  }
-
-  isAlphaNumeric(c: string): boolean {
-    return this.isAlpha(c) || this.isDigit(c);
-  }
-
-  string(): void {
+  private string(): void {
     while (this.peek() != '"' && !this.isAtEnd()) {
       if (this.peek() == "\n") this.line++;
       this.advance();
@@ -175,12 +159,12 @@ export class Scanner {
     this.addToken("STRING", value);
   }
 
-  peek(): string {
+  private peek(): string {
     if (this.isAtEnd()) return "\0";
     return this.source.charAt(this.current);
   }
 
-  match(expected: string): boolean {
+  private match(expected: string): boolean {
     if (this.isAtEnd()) return false;
     if (this.source.charAt(this.current) != expected) return false;
 
@@ -188,12 +172,28 @@ export class Scanner {
     return true;
   }
 
-  advance(): string {
+  private advance(): string {
     return this.source.charAt(this.current++);
   }
 
-  addToken(type: TokenType, literal: any = null): void {
+  private addToken(type: TokenType, literal: any = null): void {
     const text = this.source.substring(this.start, this.current);
     this.tokens.push(new Token(type, text, literal, this.line));
+  }
+
+  private isAtEnd(): boolean {
+    return this.current >= this.source.length;
+  }
+
+  private isAlpha(c: string): boolean {
+    return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c == "_";
+  }
+
+  private isDigit(c: string): boolean {
+    return c >= "0" && c <= "9";
+  }
+
+  private isAlphaNumeric(c: string): boolean {
+    return this.isAlpha(c) || this.isDigit(c);
   }
 }

@@ -24,20 +24,6 @@ export class Interpreter implements Visitor<any> {
     }
   }
 
-  stringify(value: any): any {
-    if (value === null) return "nil";
-
-    if (typeof value === "number") {
-      let text = value.toString();
-      if (text.endsWith(".0")) {
-        text = text.substring(0, text.length - 2);
-      }
-      return text;
-    }
-
-    return value.toString();
-  }
-
   visitBinaryExpr(expr: BinaryExpr): any {
     const left = this.evaluate(expr.left);
     const right = this.evaluate(expr.right);
@@ -84,14 +70,6 @@ export class Interpreter implements Visitor<any> {
     return null;
   }
 
-  isEqual(a: any, b: any) {
-    // TODO: see if this can be simplified
-    if (a === null && b === null) return true;
-    if (a === null) return false;
-
-    return a === b;
-  }
-
   visitGroupingExpr(expr: GroupingExpr): any {
     return this.evaluate(expr.expression);
   }
@@ -114,24 +92,46 @@ export class Interpreter implements Visitor<any> {
     return null;
   }
 
-  checkNumberOperands(operator: Token, left: any, right: any) {
+  private checkNumberOperands(operator: Token, left: any, right: any) {
     if (typeof left === "number" && typeof right === "number") return;
     throw new RuntimeError(operator, "Operands must be numbers");
   }
 
-  checkNumberOperand(operator: Token, operand: any) {
+  private checkNumberOperand(operator: Token, operand: any) {
     if (typeof operand === "number") return;
 
     throw new RuntimeError(operator, "Operand must be a number");
   }
 
-  evaluate(expr: Expr): any {
+  private evaluate(expr: Expr): any {
     return expr.accept(this);
   }
 
-  isTruthy(value: any) {
+  private isEqual(a: any, b: any) {
+    // TODO: see if this can be simplified
+    if (a === null && b === null) return true;
+    if (a === null) return false;
+
+    return a === b;
+  }
+
+  private isTruthy(value: any) {
     if (value === null) return false;
     if (value === false) return false;
     return true;
+  }
+
+  private stringify(value: any): any {
+    if (value === null) return "nil";
+
+    if (typeof value === "number") {
+      let text = value.toString();
+      if (text.endsWith(".0")) {
+        text = text.substring(0, text.length - 2);
+      }
+      return text;
+    }
+
+    return value.toString();
   }
 }
