@@ -22,7 +22,7 @@ export class ExpressionStmt extends Stmt {
 }
 
 export class VarStmt extends Stmt {
-  constructor(readonly name: Token, readonly initializer: Expr) {
+  constructor(readonly name: Token, readonly initializer: Expr | null) {
     super();
   }
 

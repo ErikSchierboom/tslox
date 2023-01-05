@@ -92,7 +92,7 @@ defineAst(
   "Stmt",
   [
     "Expression: Expr expression",
-    "Var :       Token name, Expr initializer",
+    "Var :       Token name, Expr|null initializer",
     "Print:      Expr expression",
   ],
   ['import { Expr } from "./Expr";', 'import { Token } from "./Tokens";']

@@ -5,11 +5,21 @@ import {
   GroupingExpr,
   LiteralExpr,
   UnaryExpr,
+  AssignExpr,
+  VariableExpr,
 } from "./Expr";
 
 export class AstPrinter implements ExprVisitor<string> {
   print(expr: Expr): string {
     return expr.accept(this);
+  }
+
+  visitAssignExpr(expr: AssignExpr): string {
+    return this.parenthesize(`${expr.name.lexeme} =`, expr.value);
+  }
+
+  visitVariableExpr(expr: VariableExpr): string {
+    return this.parenthesize(`var ${expr.name.lexeme}`);
   }
 
   visitBinaryExpr(expr: BinaryExpr): string {

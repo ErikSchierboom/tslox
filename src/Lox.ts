@@ -6,6 +6,7 @@ import { Token } from "./Tokens";
 import { Parser } from "./Parser";
 import { RuntimeError } from "./RuntimeError";
 import { Interpreter } from "./Interpreter";
+import { Stmt } from "./Stmt";
 
 export class Lox {
   private static interpreter = new Interpreter();
@@ -45,7 +46,9 @@ export class Lox {
 
     if (this.hadError) return;
 
-    this.interpreter.interpret(statements);
+    this.interpreter.interpret(
+      statements.filter((stmt): stmt is Stmt => stmt !== null)
+    );
   }
 
   static runFile(path: string): void {
