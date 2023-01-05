@@ -11,11 +11,18 @@ import {
 } from "./Expr";
 import { Lox } from "./Lox";
 import { RuntimeError } from "./RuntimeError";
-import { ExpressionStmt, PrintStmt, Stmt, StmtVisitor, VarStmt } from "./Stmt";
+import {
+  BlockStmt,
+  ExpressionStmt,
+  PrintStmt,
+  Stmt,
+  StmtVisitor,
+  VarStmt,
+} from "./Stmt";
 import { Token } from "./Tokens";
 
 export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
-  private readonly environment = new Environment();
+  private environment = new Environment();
 
   interpret(statements: Stmt[]): void {
     try {
@@ -37,6 +44,10 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
 
   private evaluate(expr: Expr): any {
     return expr.accept(this);
+  }
+
+  visitBlockStmt(stmt: BlockStmt): void {
+    this.executeBlock(stmt.statements, new Environment(this.environment));
   }
 
   visitVarStmt(stmt: VarStmt): void {
@@ -131,6 +142,20 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     }
 
     return null;
+  }
+
+  executeBlock(statements: Stmt[], environment: Environment): void {
+    const previous = this.environment;
+
+    try {
+      this.environment = environment;
+
+      for (const statement of statements) {
+        this.execute(statement);
+      }
+    } finally {
+      this.environment = previous;
+    }
   }
 
   private checkNumberOperands(operator: Token, left: any, right: any) {

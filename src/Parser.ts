@@ -8,7 +8,7 @@ import {
   VariableExpr,
 } from "./Expr";
 import { Lox } from "./Lox";
-import { ExpressionStmt, PrintStmt, Stmt, VarStmt } from "./Stmt";
+import { BlockStmt, ExpressionStmt, PrintStmt, Stmt, VarStmt } from "./Stmt";
 import { Token, TokenType } from "./Tokens";
 
 export class ParseError extends Error {}
@@ -52,8 +52,23 @@ export class Parser {
 
   private statement(): Stmt {
     if (this.match("PRINT")) return this.printStatement();
+    if (this.match("LEFT_BRACE")) return new BlockStmt(this.block());
 
     return this.expressionStatement();
+  }
+
+  private block(): Stmt[] {
+    const statements: Stmt[] = [];
+
+    while (!this.check("RIGHT_BRACE") && !this.isAtEnd()) {
+      const stmt = this.declaration();
+      if (stmt !== null) {
+        statements.push(stmt);
+      }
+    }
+
+    this.consume("RIGHT_BRACE", "Expect '}' after block.");
+    return statements;
   }
 
   private printStatement(): Stmt {
