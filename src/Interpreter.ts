@@ -8,12 +8,14 @@ import {
   ExprVisitor,
   VariableExpr,
   AssignExpr,
+  LogicalExpr,
 } from "./Expr";
 import { Lox } from "./Lox";
 import { RuntimeError } from "./RuntimeError";
 import {
   BlockStmt,
   ExpressionStmt,
+  IfStmt,
   PrintStmt,
   Stmt,
   StmtVisitor,
@@ -46,6 +48,14 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     return expr.accept(this);
   }
 
+  visitIfStmt(stmt: IfStmt): void {
+    if (this.isTruthy(this.evaluate(stmt.condition))) {
+      this.execute(stmt.thenBranch);
+    } else if (stmt.elseBranch != null) {
+      this.execute(stmt.elseBranch);
+    }
+  }
+
   visitBlockStmt(stmt: BlockStmt): void {
     this.executeBlock(stmt.statements, new Environment(this.environment));
   }
@@ -74,6 +84,22 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
 
   visitVariableExpr(expr: VariableExpr): any {
     return this.environment.get(expr.name);
+  }
+
+  visitLogicalExpr(expr: LogicalExpr) {
+    const left = this.evaluate(expr.left);
+
+    if (expr.operator.type == "OR") {
+      if (this.isTruthy(left)) {
+        return left;
+      }
+    } else {
+      if (!this.isTruthy(left)) {
+        return left;
+      }
+    }
+
+    return this.evaluate(expr.right);
   }
 
   visitBinaryExpr(expr: BinaryExpr): any {

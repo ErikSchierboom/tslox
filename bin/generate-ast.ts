@@ -81,6 +81,7 @@ defineAst(
     "Binary:   Expr left, Token operator, Expr right",
     "Grouping: Expr expression",
     "Literal:  Literal value",
+    "Logical:  Expr left, Token operator, Expr right",
     "Variable: Token name",
     "Unary:    Token operator, Expr right",
   ],
@@ -92,8 +93,9 @@ defineAst(
   "Stmt",
   [
     "Block:      Stmt[] statements",
-    "Expression: Expr expression",
     "Var :       Token name, Expr|null initializer",
+    "Expression: Expr expression",
+    "If:         Expr condition, Stmt thenBranch, Stmt|null elseBranch",
     "Print:      Expr expression",
   ],
   ['import { Expr } from "./Expr";', 'import { Token } from "./Tokens";']
