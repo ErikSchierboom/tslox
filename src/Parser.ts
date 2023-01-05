@@ -1,4 +1,4 @@
-import { BinaryExpr, Expr, GroupingExpr, LiteralExpr, UnaryExpr } from "./Ast";
+import { BinaryExpr, Expr, GroupingExpr, LiteralExpr, UnaryExpr } from "./Expr";
 import { Lox } from "./Lox";
 import { Token, TokenType } from "./Tokens";
 

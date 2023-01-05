@@ -4,7 +4,6 @@ import * as readline from "node:readline/promises";
 import { Scanner } from "./Scanner";
 import { Token } from "./Tokens";
 import { Parser } from "./Parser";
-import { AstPrinter } from "./AstPrinter";
 import { RuntimeError } from "./RuntimeError";
 import { Interpreter } from "./Interpreter";
 

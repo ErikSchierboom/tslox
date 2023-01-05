@@ -2,11 +2,16 @@ import { join, resolve } from "node:path";
 import { createWriteStream } from "node:fs";
 import { WriteStream } from "fs";
 
-function defineAst(outputDir: string, baseName: string, types: string[]): void {
-  const path = join(outputDir, "Ast.ts");
+function defineAst(
+  outputDir: string,
+  baseName: string,
+  types: string[],
+  imports: string
+): void {
+  const path = join(outputDir, `${baseName}.ts`);
   const writer = createWriteStream(path, "utf-8");
 
-  writer.write('import { Literal, Token } from "./Tokens"\n');
+  writer.write(imports);
   writer.write("\n");
   writer.write(`export abstract class ${baseName} {\n`);
   writer.write("abstract accept<T>(visitor: Visitor<T>): T;\n");
@@ -64,9 +69,21 @@ function defineVisitor(writer: WriteStream, baseName: string, types: string[]) {
 
 const outputDir = resolve("./src");
 
-defineAst(outputDir, "Expr", [
-  "Binary:   Expr left, Token operator, Expr right",
-  "Grouping: Expr expression",
-  "Literal:  Literal value",
-  "Unary:    Token operator, Expr right",
-]);
+defineAst(
+  outputDir,
+  "Expr",
+  [
+    "Binary:   Expr left, Token operator, Expr right",
+    "Grouping: Expr expression",
+    "Literal:  Literal value",
+    "Unary:    Token operator, Expr right",
+  ],
+  'import { Literal, Token } from "./Tokens";\n'
+);
+
+defineAst(
+  outputDir,
+  "Stmt",
+  ["Expression : Expr expression", "Print:       Expr expression"],
+  'import { Expr } from "./Expr";\n'
+);

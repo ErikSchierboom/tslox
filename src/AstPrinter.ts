@@ -5,7 +5,7 @@ import {
   GroupingExpr,
   LiteralExpr,
   UnaryExpr,
-} from "./Ast";
+} from "./Expr";
 
 export class AstPrinter implements Visitor<string> {
   print(expr: Expr): string {

@@ -1,4 +1,3 @@
-import exp from "constants";
 import {
   BinaryExpr,
   Expr,
@@ -6,7 +5,7 @@ import {
   LiteralExpr,
   UnaryExpr,
   Visitor,
-} from "./Ast";
+} from "./Expr";
 import { Lox } from "./Lox";
 import { RuntimeError } from "./RuntimeError";
 import { Token } from "./Tokens";
