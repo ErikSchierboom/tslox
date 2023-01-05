@@ -44,11 +44,13 @@ export type TokenType =
   // Special
   | "EOF";
 
+export type Literal = number | boolean | string | null;
+
 export class Token {
   constructor(
     readonly type: TokenType,
     readonly lexeme: string,
-    readonly literal: any,
+    readonly literal: Literal,
     readonly line: number
   ) {}
 

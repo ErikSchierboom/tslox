@@ -6,7 +6,7 @@ function defineAst(outputDir: string, baseName: string, types: string[]): void {
   const path = join(outputDir, "Ast.ts");
   const writer = createWriteStream(path, "utf-8");
 
-  writer.write('import { Token } from "./Tokens"\n');
+  writer.write('import { Literal, Token } from "./Tokens"\n');
   writer.write("\n");
   writer.write(`export abstract class ${baseName} {\n`);
   writer.write("abstract accept<T>(visitor: Visitor<T>): T;\n");
@@ -67,6 +67,6 @@ const outputDir = resolve("./src");
 defineAst(outputDir, "Expr", [
   "Binary:   Expr left, Token operator, Expr right",
   "Grouping: Expr expression",
-  "Literal:  Object value",
+  "Literal:  Literal value",
   "Unary:    Token operator, Expr right",
 ]);

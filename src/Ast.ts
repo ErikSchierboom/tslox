@@ -1,4 +1,4 @@
-import { Token } from "./Tokens";
+import { Literal, Token } from "./Tokens";
 
 export abstract class Expr {
   abstract accept<T>(visitor: Visitor<T>): T;
@@ -36,7 +36,7 @@ export class GroupingExpr extends Expr {
 }
 
 export class LiteralExpr extends Expr {
-  constructor(readonly value: Object) {
+  constructor(readonly value: Literal) {
     super();
   }
 

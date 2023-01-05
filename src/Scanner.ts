@@ -22,9 +22,9 @@ export class Scanner {
   };
 
   private readonly tokens: Token[] = [];
-  private start = 0;
-  private current = 0;
-  private line = 1;
+  private start: number = 0;
+  private current: number = 0;
+  private line: number = 1;
 
   constructor(private readonly source: string) {}
 

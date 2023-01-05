@@ -2,13 +2,21 @@ import { exit, stdin, stdout } from "node:process";
 import { readFileSync } from "node:fs";
 import * as readline from "node:readline/promises";
 import { Scanner } from "./Scanner";
-import { BinaryExpr, GroupingExpr, LiteralExpr, UnaryExpr } from "./Ast";
 import { Token } from "./Tokens";
+import { Parser } from "./Parser";
 import { AstPrinter } from "./AstPrinter";
 
 export class Lox {
-  static error(line: number, message: string): void {
-    Lox.report(line, "", message);
+  static error(context: number | Token, message: string): void {
+    if (context instanceof Token) {
+      if (context.type == "EOF") {
+        this.report(context.line, " at end", message);
+      } else {
+        this.report(context.line, ` at '${context.lexeme}'`, message);
+      }
+    } else {
+      this.report(context, "", message);
+    }
   }
 
   static hadError = false;
@@ -22,9 +30,12 @@ export class Lox {
     const scanner = new Scanner(source);
     const tokens = scanner.scanTokens(); // TODO: use iterator
 
-    for (const token of tokens) {
-      console.log(token);
-    }
+    const parser = new Parser(tokens);
+    const expression = parser.parse();
+
+    if (this.hadError) return;
+
+    console.log(new AstPrinter().print(expression));
   }
 
   static runFile(path: string): void {
