@@ -5,8 +5,21 @@ import { Scanner } from "./Scanner";
 import { Token } from "./Tokens";
 import { Parser } from "./Parser";
 import { AstPrinter } from "./AstPrinter";
+import { RuntimeError } from "./RuntimeError";
+import { Interpreter } from "./Interpreter";
 
 export class Lox {
+  private static interpreter = new Interpreter();
+
+  static hadError = false;
+  static hadRuntimeError = false;
+
+  static runtimeError(error: RuntimeError) {
+    console.error(error.message);
+    console.error(`[line ${error.token.line}]`);
+    this.hadRuntimeError = true;
+  }
+
   static error(context: number | Token, message: string): void {
     if (context instanceof Token) {
       if (context.type == "EOF") {
@@ -19,11 +32,9 @@ export class Lox {
     }
   }
 
-  static hadError = false;
-
   static report(line: number, where: string, message: string): void {
     console.error(`[line ${line}] Error${where} ${message}`);
-    Lox.hadError = true;
+    this.hadError = true;
   }
 
   static run(source: string): void {
@@ -35,15 +46,14 @@ export class Lox {
 
     if (this.hadError) return;
 
-    console.log(new AstPrinter().print(expression));
+    this.interpreter.interpret(expression);
   }
 
   static runFile(path: string): void {
-    Lox.run(readFileSync(path, { encoding: "utf-8" }));
+    this.run(readFileSync(path, { encoding: "utf-8" }));
 
-    if (Lox.hadError) {
-      exit(65);
-    }
+    if (this.hadError) exit(65);
+    if (this.hadRuntimeError) exit(70);
   }
 
   static runPrompt(): void {
@@ -55,8 +65,8 @@ export class Lox {
     rl.prompt();
 
     rl.on("line", (line) => {
-      Lox.run(line);
-      Lox.hadError = false;
+      this.run(line);
+      this.hadError = false;
       rl.prompt();
     }).on("close", () => process.exit());
   }
@@ -66,9 +76,9 @@ export class Lox {
       console.error("Usage: tslox [script]");
       exit(64);
     } else if (args.length == 1) {
-      Lox.runFile(args[0]);
+      this.runFile(args[0]);
     } else {
-      Lox.runPrompt();
+      this.runPrompt();
     }
   }
 }
