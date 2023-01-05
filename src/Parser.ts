@@ -1,5 +1,6 @@
 import { BinaryExpr, Expr, GroupingExpr, LiteralExpr, UnaryExpr } from "./Expr";
 import { Lox } from "./Lox";
+import { ExpressionStmt, PrintStmt, Stmt } from "./Stmt";
 import { Token, TokenType } from "./Tokens";
 
 export class ParseError extends Error {}
@@ -9,14 +10,32 @@ export class Parser {
 
   constructor(private readonly tokens: Token[]) {}
 
-  parse(): Expr | null {
-    try {
-      return this.expression();
-    } catch (error) {
-      if (error instanceof ParseError) return null;
+  parse(): Stmt[] {
+    const statements = [];
 
-      throw error;
+    while (!this.isAtEnd()) {
+      statements.push(this.statement());
     }
+
+    return statements;
+  }
+
+  private statement(): Stmt {
+    if (this.match("PRINT")) return this.printStatement();
+
+    return this.expressionStatement();
+  }
+
+  private printStatement(): Stmt {
+    const value = this.expression();
+    this.consume("SEMICOLON", "Expect ';' after value.");
+    return new PrintStmt(value);
+  }
+
+  private expressionStatement(): Stmt {
+    const expr = this.expression();
+    this.consume("SEMICOLON", "Expect ';' after expression.");
+    return new ExpressionStmt(expr);
   }
 
   private expression(): Expr {

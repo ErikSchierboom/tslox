@@ -4,17 +4,19 @@ import {
   GroupingExpr,
   LiteralExpr,
   UnaryExpr,
-  Visitor,
+  ExprVisitor,
 } from "./Expr";
 import { Lox } from "./Lox";
 import { RuntimeError } from "./RuntimeError";
+import { ExpressionStmt, PrintStmt, Stmt, StmtVisitor } from "./Stmt";
 import { Token } from "./Tokens";
 
-export class Interpreter implements Visitor<any> {
-  interpret(expr: Expr): void {
+export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
+  interpret(statements: Stmt[]): void {
     try {
-      const value = this.evaluate(expr);
-      console.log(this.stringify(value));
+      for (const statement of statements) {
+        this.execute(statement);
+      }
     } catch (error) {
       if (error instanceof RuntimeError) {
         Lox.runtimeError(error);
@@ -22,6 +24,23 @@ export class Interpreter implements Visitor<any> {
         throw error;
       }
     }
+  }
+
+  private execute(stmt: Stmt) {
+    stmt.accept(this);
+  }
+
+  private evaluate(expr: Expr): any {
+    return expr.accept(this);
+  }
+
+  visitExpressionStmt(stmt: ExpressionStmt): void {
+    this.evaluate(stmt.expression);
+  }
+
+  visitPrintStmt(stmt: PrintStmt): void {
+    const value = this.evaluate(stmt.expression);
+    console.log(this.stringify(value));
   }
 
   visitBinaryExpr(expr: BinaryExpr): any {
@@ -101,10 +120,6 @@ export class Interpreter implements Visitor<any> {
     if (typeof operand === "number") return;
 
     throw new RuntimeError(operator, "Operand must be a number");
-  }
-
-  private evaluate(expr: Expr): any {
-    return expr.accept(this);
   }
 
   private isEqual(a: any, b: any) {

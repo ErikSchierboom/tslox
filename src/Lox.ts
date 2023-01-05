@@ -41,11 +41,11 @@ export class Lox {
     const tokens = scanner.scanTokens(); // TODO: use iterator
 
     const parser = new Parser(tokens);
-    const expression = parser.parse();
+    const statements = parser.parse();
 
     if (this.hadError) return;
 
-    this.interpreter.interpret(expression);
+    this.interpreter.interpret(statements);
   }
 
   static runFile(path: string): void {

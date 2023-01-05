@@ -14,7 +14,7 @@ function defineAst(
   writer.write(imports);
   writer.write("\n");
   writer.write(`export abstract class ${baseName} {\n`);
-  writer.write("abstract accept<T>(visitor: Visitor<T>): T;\n");
+  writer.write(`abstract accept<T>(visitor: ${baseName}Visitor<T>): T;\n`);
   writer.write("}\n");
   writer.write("\n");
 
@@ -47,14 +47,14 @@ function defineType(
   writer.write("    super()\n");
   writer.write("  }\n");
   writer.write("\n");
-  writer.write("  accept<T>(visitor: Visitor<T>): T {\n");
+  writer.write(`  accept<T>(visitor: ${baseName}Visitor<T>): T {\n`);
   writer.write(`    return visitor.visit${className}${baseName}(this);\n`);
   writer.write("  }\n");
   writer.write("}\n");
 }
 
 function defineVisitor(writer: WriteStream, baseName: string, types: string[]) {
-  writer.write("export interface Visitor<T> {\n");
+  writer.write(`export interface ${baseName}Visitor<T> {\n`);
 
   for (const type of types) {
     const className = `${type.split(":")[0].trim()}${baseName}`;

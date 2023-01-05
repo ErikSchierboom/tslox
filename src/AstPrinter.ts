@@ -1,5 +1,5 @@
 import {
-  Visitor,
+  ExprVisitor,
   Expr,
   BinaryExpr,
   GroupingExpr,
@@ -7,7 +7,7 @@ import {
   UnaryExpr,
 } from "./Expr";
 
-export class AstPrinter implements Visitor<string> {
+export class AstPrinter implements ExprVisitor<string> {
   print(expr: Expr): string {
     return expr.accept(this);
   }
