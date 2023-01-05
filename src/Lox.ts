@@ -44,14 +44,12 @@ export class Lox {
       Lox.run(line);
       Lox.hadError = false;
       rl.prompt();
-    }).on("close", () => {
-      process.exit(0);
-    });
+    }).on("close", () => process.exit());
   }
 
   static main(args: string[]): void {
     if (args.length > 3) {
-      console.error("Usage: tslox [script]\n");
+      console.error("Usage: tslox [script]");
       exit(64);
     } else if (args.length == 1) {
       Lox.runFile(args[0]);
