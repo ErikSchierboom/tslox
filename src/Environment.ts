@@ -4,7 +4,7 @@ import { Token } from "./Tokens";
 export class Environment {
   private readonly values = new Map<string, any>();
 
-  constructor(private readonly enclosing: Environment | null = null) {}
+  constructor(readonly enclosing: Environment | null = null) {}
 
   define(name: string, value: any): void {
     this.values.set(name, value);

@@ -9,6 +9,7 @@ import {
   LiteralExpr,
   LogicalExpr,
   SetExpr,
+  SuperExpr,
   ThisExpr,
   UnaryExpr,
   VariableExpr,
@@ -31,7 +32,7 @@ import {
 import { Token } from "./Tokens";
 
 type FunctionType = "NONE" | "FUNCTION" | "INITIALIZER" | "METHOD";
-type ClassType = "NONE" | "CLASS";
+type ClassType = "NONE" | "CLASS" | "SUBCLASS";
 
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   private readonly scopes: Map<string, boolean>[] = [];
@@ -39,6 +40,19 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   private currentClass: ClassType = "NONE";
 
   constructor(private readonly interpreter: Interpreter) {}
+
+  visitSuperExpr(expr: SuperExpr): void {
+    if (this.currentClass == "NONE") {
+      Lox.error(expr.keyword, "Can't use 'super' outside of a class.");
+    } else if (this.currentClass != "SUBCLASS") {
+      Lox.error(
+        expr.keyword,
+        "Can't use 'super' in a class with no superclass."
+      );
+    }
+
+    this.resolveLocal(expr, expr.keyword);
+  }
 
   visitThisExpr(expr: ThisExpr): void {
     if (this.currentClass == "NONE") {
@@ -65,6 +79,23 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     this.declare(stmt.name);
     this.define(stmt.name);
 
+    if (
+      stmt.superclass !== null &&
+      stmt.name.lexeme === stmt.superclass.name.lexeme
+    ) {
+      Lox.error(stmt.superclass.name, "A class can't inherit from itself.");
+    }
+
+    if (stmt.superclass !== null) {
+      this.currentClass = "SUBCLASS";
+      this.resolve(stmt.superclass);
+    }
+
+    if (stmt.superclass !== null) {
+      this.beginScope();
+      this.scopes.at(-1)!.set("super", true);
+    }
+
     this.beginScope();
     this.scopes.at(-1)!.set("this", true);
 
@@ -75,6 +106,11 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     }
 
     this.endScope();
+
+    if (stmt.superclass !== null) {
+      this.endScope();
+    }
+
     this.currentClass = enclosingClass;
   }
 

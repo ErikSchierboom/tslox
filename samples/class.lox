@@ -1,7 +1,18 @@
-class Bacon {
+class Food {
+  init() {
+    this.name = "food";
+  }
+
   eat() {
-    print "Crunch";
+    print "Eating " + this.name;
   }
 }
 
+class Bacon < Food {
+  init() {
+    this.name = "bacon";
+  }
+}
+
+Food().eat();
 Bacon().eat();

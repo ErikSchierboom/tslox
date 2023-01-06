@@ -28,7 +28,11 @@ export class BlockStmt extends Stmt {
 }
 
 export class ClassStmt extends Stmt {
-  constructor(readonly name: Token, readonly methods: FunctionStmt[]) {
+  constructor(
+    readonly name: Token,
+    readonly superclass: VariableExpr | null,
+    readonly methods: FunctionStmt[]
+  ) {
     super();
   }
 

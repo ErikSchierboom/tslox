@@ -8,6 +8,7 @@ import {
   LiteralExpr,
   LogicalExpr,
   SetExpr,
+  SuperExpr,
   ThisExpr,
   UnaryExpr,
   VariableExpr,
@@ -62,6 +63,13 @@ export class Parser {
 
   private classDeclaration(): Stmt {
     const name = this.consume("IDENTIFIER", "Expect class name");
+
+    let superclass: VariableExpr | null = null;
+    if (this.match("LESS")) {
+      this.consume("IDENTIFIER", "Expect superclass name");
+      superclass = new VariableExpr(this.previous());
+    }
+
     this.consume("LEFT_BRACE", "Expect '{' before class body.");
     const methods: FunctionStmt[] = [];
 
@@ -70,7 +78,7 @@ export class Parser {
     }
 
     this.consume("RIGHT_BRACE", "Expect '}' after class body.");
-    return new ClassStmt(name, methods);
+    return new ClassStmt(name, superclass, methods);
   }
 
   private function(kind: string): FunctionStmt {
@@ -352,6 +360,16 @@ export class Parser {
 
     if (this.match("NUMBER", "STRING")) {
       return new LiteralExpr(this.previous().literal);
+    }
+
+    if (this.match("SUPER")) {
+      const keyword = this.previous();
+      this.consume("DOT", "Expect '.' after 'super'.");
+      const method = this.consume(
+        "IDENTIFIER",
+        "Expect superclass method name"
+      );
+      return new SuperExpr(keyword, method);
     }
 
     if (this.match("THIS")) return new ThisExpr(this.previous());
