@@ -7,6 +7,7 @@ import { Parser } from "./Parser";
 import { RuntimeError } from "./RuntimeError";
 import { Interpreter } from "./Interpreter";
 import { Stmt } from "./Stmt";
+import { Resolver } from "./Resolver";
 
 export class Lox {
   private static interpreter = new Interpreter();
@@ -43,6 +44,11 @@ export class Lox {
 
     const parser = new Parser(tokens);
     const statements = parser.parse();
+
+    if (this.hadError) return;
+
+    const resolver = new Resolver(this.interpreter);
+    resolver.resolve(statements.filter((stmt): stmt is Stmt => stmt !== null));
 
     if (this.hadError) return;
 

@@ -33,6 +33,7 @@ import { Token } from "./Tokens";
 export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
   public globals = new Environment();
   private environment = this.globals;
+  private readonly locals: Map<Expr, number> = new Map();
 
   constructor() {
     this.globals.define("clock", {
@@ -54,6 +55,10 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
         throw error;
       }
     }
+  }
+
+  resolve(expr: Expr, depth: number): void {
+    this.locals.set(expr, depth);
   }
 
   private execute(stmt: Stmt) {
@@ -131,12 +136,18 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
 
   visitAssignExpr(expr: AssignExpr): any {
     const value = this.evaluate(expr.value);
-    this.environment.assign(expr.name, value);
+    const distance = this.locals.get(expr);
+    if (distance !== undefined) {
+      this.environment.assignAt(distance, expr.name, value);
+    } else {
+      this.globals.assign(expr.name, value);
+    }
+
     return value;
   }
 
   visitVariableExpr(expr: VariableExpr): any {
-    return this.environment.get(expr.name);
+    return this.lookupVariable(expr.name, expr);
   }
 
   visitLogicalExpr(expr: LogicalExpr) {
@@ -274,5 +285,14 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     }
 
     return value.toString();
+  }
+
+  private lookupVariable(name: Token, expr: VariableExpr): any {
+    const distance = this.locals.get(expr);
+    if (distance !== undefined) {
+      return this.environment.getAt(distance, name.lexeme);
+    } else {
+      return this.globals.get(name);
+    }
   }
 }
