@@ -7,6 +7,7 @@ export abstract class Stmt {
 
 export interface StmtVisitor<T> {
   visitBlockStmt(stmt: BlockStmt): T;
+  visitClassStmt(stmt: ClassStmt): T;
   visitVarStmt(stmt: VarStmt): T;
   visitExpressionStmt(stmt: ExpressionStmt): T;
   visitFunctionStmt(stmt: FunctionStmt): T;
@@ -23,6 +24,16 @@ export class BlockStmt extends Stmt {
 
   accept<T>(visitor: StmtVisitor<T>): T {
     return visitor.visitBlockStmt(this);
+  }
+}
+
+export class ClassStmt extends Stmt {
+  constructor(readonly name: Token, readonly methods: FunctionStmt[]) {
+    super();
+  }
+
+  accept<T>(visitor: StmtVisitor<T>): T {
+    return visitor.visitClassStmt(this);
   }
 }
 

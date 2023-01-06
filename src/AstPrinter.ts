@@ -7,11 +7,36 @@ import {
   UnaryExpr,
   AssignExpr,
   VariableExpr,
+  CallExpr,
+  GetExpr,
+  LogicalExpr,
+  SetExpr,
+  ThisExpr,
 } from "./Expr";
 
 export class AstPrinter implements ExprVisitor<string> {
   print(expr: Expr): string {
     return expr.accept(this);
+  }
+
+  visitCallExpr(expr: CallExpr): string {
+    return this.parenthesize("call", expr.callee, ...expr.args);
+  }
+
+  visitGetExpr(expr: GetExpr): string {
+    return this.parenthesize(`get ${expr.name.lexeme}`, expr.obj);
+  }
+
+  visitLogicalExpr(expr: LogicalExpr): string {
+    return this.parenthesize(expr.operator.lexeme, expr.left, expr.right);
+  }
+
+  visitSetExpr(expr: SetExpr): string {
+    return this.parenthesize(`set ${expr.name.lexeme}`, expr.obj, expr.value);
+  }
+
+  visitThisExpr(expr: ThisExpr): string {
+    return this.parenthesize("this");
   }
 
   visitAssignExpr(expr: AssignExpr): string {

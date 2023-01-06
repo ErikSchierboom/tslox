@@ -3,15 +3,19 @@ import {
   BinaryExpr,
   CallExpr,
   Expr,
+  GetExpr,
   GroupingExpr,
   LiteralExpr,
   LogicalExpr,
+  SetExpr,
+  ThisExpr,
   UnaryExpr,
   VariableExpr,
 } from "./Expr";
 import { Lox } from "./Lox";
 import {
   BlockStmt,
+  ClassStmt,
   ExpressionStmt,
   FunctionStmt,
   IfStmt,
@@ -42,6 +46,7 @@ export class Parser {
 
   private declaration(): Stmt | null {
     try {
+      if (this.match("CLASS")) return this.classDeclaration();
       if (this.match("FUN")) return this.function("function");
       if (this.match("VAR")) return this.varDeclaration();
       return this.statement();
@@ -55,7 +60,20 @@ export class Parser {
     }
   }
 
-  private function(kind: string): Stmt {
+  private classDeclaration(): Stmt {
+    const name = this.consume("IDENTIFIER", "Expect class name");
+    this.consume("LEFT_BRACE", "Expect '{' before class body.");
+    const methods: FunctionStmt[] = [];
+
+    while (!this.check("RIGHT_BRACE") && !this.isAtEnd()) {
+      methods.push(this.function("method"));
+    }
+
+    this.consume("RIGHT_BRACE", "Expect '}' after class body.");
+    return new ClassStmt(name, methods);
+  }
+
+  private function(kind: string): FunctionStmt {
     const name = this.consume("IDENTIFIER", `Expect ${kind} name.`);
     this.consume("LEFT_PAREN", `Expect '(' after ${kind} name.`);
     const parameters: Token[] = [];
@@ -199,6 +217,8 @@ export class Parser {
       if (expr instanceof VariableExpr) {
         const name = expr.name;
         return new AssignExpr(name, value);
+      } else if (expr instanceof GetExpr) {
+        return new SetExpr(expr.obj, expr.name, value);
       }
 
       this.error(equals, "Invalid assignment target.");
@@ -295,6 +315,12 @@ export class Parser {
     while (true) {
       if (this.match("LEFT_PAREN")) {
         expr = this.finishCall(expr);
+      } else if (this.match("DOT")) {
+        const name = this.consume(
+          "IDENTIFIER",
+          "Expect property name after '.'."
+        );
+        expr = new GetExpr(expr, name);
       } else {
         break;
       }
@@ -327,6 +353,8 @@ export class Parser {
     if (this.match("NUMBER", "STRING")) {
       return new LiteralExpr(this.previous().literal);
     }
+
+    if (this.match("THIS")) return new ThisExpr(this.previous());
 
     if (this.match("IDENTIFIER")) {
       return new VariableExpr(this.previous());

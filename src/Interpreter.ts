@@ -10,14 +10,20 @@ import {
   AssignExpr,
   LogicalExpr,
   CallExpr,
+  GetExpr,
+  SetExpr,
+  ThisExpr,
 } from "./Expr";
 import { Lox } from "./Lox";
-import { isLoxCallable, LoxCallable } from "./LoxCallable";
+import { isLoxCallable } from "./LoxCallable";
+import { LoxClass } from "./LoxClass";
 import { LoxFunction } from "./LoxFunction";
+import { LoxInstance } from "./LoxInstance";
 import { Return } from "./Return";
 import { RuntimeError } from "./RuntimeError";
 import {
   BlockStmt,
+  ClassStmt,
   ExpressionStmt,
   FunctionStmt,
   IfStmt,
@@ -69,13 +75,55 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     return expr.accept(this);
   }
 
+  visitThisExpr(expr: ThisExpr) {
+    return this.lookupVariable(expr.keyword, expr);
+  }
+
+  visitSetExpr(expr: SetExpr): any {
+    const obj = this.evaluate(expr.obj);
+
+    if (!(obj instanceof LoxInstance)) {
+      throw new RuntimeError(expr.name, "Only instances have fields.");
+    }
+
+    const value = this.evaluate(expr.value);
+    obj.set(expr.name, value);
+    return value;
+  }
+
+  visitGetExpr(expr: GetExpr): any {
+    const obj = this.evaluate(expr.obj);
+    if (obj instanceof LoxInstance) {
+      return obj.get(expr.name);
+    }
+
+    throw new RuntimeError(expr.name, "Only instances have properties");
+  }
+
+  visitClassStmt(stmt: ClassStmt): void {
+    this.environment.define(stmt.name.lexeme, null);
+
+    const methods: Map<string, LoxFunction> = new Map();
+    for (const method of stmt.methods) {
+      const func = new LoxFunction(
+        method,
+        this.environment,
+        method.name.lexeme === "init"
+      );
+      methods.set(method.name.lexeme, func);
+    }
+
+    const klass = new LoxClass(stmt.name.lexeme, methods);
+    this.environment.assign(stmt.name, klass);
+  }
+
   visitReturnStmt(stmt: ReturnStmt): void {
     const value = stmt.value === null ? null : this.evaluate(stmt.value);
     throw new Return(value);
   }
 
   visitFunctionStmt(stmt: FunctionStmt): void {
-    const func = new LoxFunction(stmt, this.environment);
+    const func = new LoxFunction(stmt, this.environment, false);
     this.environment.define(stmt.name.lexeme, func);
   }
 
@@ -287,7 +335,7 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     return value.toString();
   }
 
-  private lookupVariable(name: Token, expr: VariableExpr): any {
+  private lookupVariable(name: Token, expr: Expr): any {
     const distance = this.locals.get(expr);
     if (distance !== undefined) {
       return this.environment.getAt(distance, name.lexeme);
