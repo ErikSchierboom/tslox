@@ -13,12 +13,16 @@ import {
 } from "./Expr";
 import { Lox } from "./Lox";
 import { isLoxCallable, LoxCallable } from "./LoxCallable";
+import { LoxFunction } from "./LoxFunction";
+import { Return } from "./Return";
 import { RuntimeError } from "./RuntimeError";
 import {
   BlockStmt,
   ExpressionStmt,
+  FunctionStmt,
   IfStmt,
   PrintStmt,
+  ReturnStmt,
   Stmt,
   StmtVisitor,
   VarStmt,
@@ -27,7 +31,7 @@ import {
 import { Token } from "./Tokens";
 
 export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
-  private readonly globals = new Environment();
+  public globals = new Environment();
   private environment = this.globals;
 
   constructor() {
@@ -58,6 +62,16 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
 
   private evaluate(expr: Expr): any {
     return expr.accept(this);
+  }
+
+  visitReturnStmt(stmt: ReturnStmt): void {
+    const value = stmt.value === null ? null : this.evaluate(stmt.value);
+    throw new Return(value);
+  }
+
+  visitFunctionStmt(stmt: FunctionStmt): void {
+    const func = new LoxFunction(stmt);
+    this.environment.define(stmt.name.lexeme, func);
   }
 
   visitCallExpr(expr: CallExpr) {

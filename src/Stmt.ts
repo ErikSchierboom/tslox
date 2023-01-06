@@ -9,8 +9,10 @@ export interface StmtVisitor<T> {
   visitBlockStmt(stmt: BlockStmt): T;
   visitVarStmt(stmt: VarStmt): T;
   visitExpressionStmt(stmt: ExpressionStmt): T;
+  visitFunctionStmt(stmt: FunctionStmt): T;
   visitIfStmt(stmt: IfStmt): T;
   visitPrintStmt(stmt: PrintStmt): T;
+  visitReturnStmt(stmt: ReturnStmt): T;
   visitWhileStmt(stmt: WhileStmt): T;
 }
 
@@ -44,6 +46,20 @@ export class ExpressionStmt extends Stmt {
   }
 }
 
+export class FunctionStmt extends Stmt {
+  constructor(
+    readonly name: Token,
+    readonly params: Token[],
+    readonly body: Stmt[]
+  ) {
+    super();
+  }
+
+  accept<T>(visitor: StmtVisitor<T>): T {
+    return visitor.visitFunctionStmt(this);
+  }
+}
+
 export class IfStmt extends Stmt {
   constructor(
     readonly condition: Expr,
@@ -65,6 +81,16 @@ export class PrintStmt extends Stmt {
 
   accept<T>(visitor: StmtVisitor<T>): T {
     return visitor.visitPrintStmt(this);
+  }
+}
+
+export class ReturnStmt extends Stmt {
+  constructor(readonly keyword: Token, readonly value: Expr | null) {
+    super();
+  }
+
+  accept<T>(visitor: StmtVisitor<T>): T {
+    return visitor.visitReturnStmt(this);
   }
 }
 

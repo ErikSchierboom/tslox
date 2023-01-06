@@ -96,8 +96,10 @@ defineAst(
     "Block:      Stmt[] statements",
     "Var :       Token name, Expr|null initializer",
     "Expression: Expr expression",
+    "Function:   Token name, Token[] params, Stmt[] body",
     "If:         Expr condition, Stmt thenBranch, Stmt|null elseBranch",
     "Print:      Expr expression",
+    "Return:     Token keyword, Expr|null value",
     "While:      Expr condition, Stmt body",
   ],
   ['import { Expr } from "./Expr";', 'import { Token } from "./Tokens";']

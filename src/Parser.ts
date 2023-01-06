@@ -13,8 +13,10 @@ import { Lox } from "./Lox";
 import {
   BlockStmt,
   ExpressionStmt,
+  FunctionStmt,
   IfStmt,
   PrintStmt,
+  ReturnStmt,
   Stmt,
   VarStmt,
   WhileStmt,
@@ -40,6 +42,7 @@ export class Parser {
 
   private declaration(): Stmt | null {
     try {
+      if (this.match("FUN")) return this.function("function");
       if (this.match("VAR")) return this.varDeclaration();
       return this.statement();
     } catch (error) {
@@ -50,6 +53,24 @@ export class Parser {
 
       throw error;
     }
+  }
+
+  private function(kind: string): Stmt {
+    const name = this.consume("IDENTIFIER", `Expect ${kind} name.`);
+    this.consume("LEFT_PAREN", `Expect '(' after ${kind} name.`);
+    const parameters: Token[] = [];
+    if (!this.check("RIGHT_PAREN")) {
+      do {
+        if (parameters.length >= 255) {
+          this.error(this.peek(), "Can't have more than 255 parameters");
+        }
+        parameters.push(this.consume("IDENTIFIER", "Expect parameter name"));
+      } while (this.match("COMMA"));
+    }
+    this.consume("RIGHT_PAREN", "Expect ')' after parameters");
+    this.consume("LEFT_BRACE", `Expect '{' before ${kind} body.`);
+    const body = this.block();
+    return new FunctionStmt(name, parameters, body);
   }
 
   private varDeclaration(): Stmt {
@@ -64,10 +85,18 @@ export class Parser {
     if (this.match("FOR")) return this.forStatement();
     if (this.match("IF")) return this.ifStatement();
     if (this.match("PRINT")) return this.printStatement();
+    if (this.match("RETURN")) return this.returnStatement();
     if (this.match("WHILE")) return this.whileStatement();
     if (this.match("LEFT_BRACE")) return new BlockStmt(this.block());
 
     return this.expressionStatement();
+  }
+
+  private returnStatement(): Stmt {
+    const keyword = this.previous();
+    const value = this.check("SEMICOLON") ? null : this.expression();
+    this.consume("SEMICOLON", "Expect ';' after return value.");
+    return new ReturnStmt(keyword, value);
   }
 
   private forStatement(): Stmt {
@@ -122,7 +151,7 @@ export class Parser {
   private ifStatement(): Stmt {
     this.consume("LEFT_PAREN", "Expect '(' after 'if'.");
     const condition = this.expression();
-    this.consume("LEFT_PAREN", "Expect ')' after if condition.");
+    this.consume("RIGHT_PAREN", "Expect ')' after if condition.");
 
     const thenBranch = this.statement();
     const elseBranch = this.match("ELSE") ? this.statement() : null;
