@@ -12,7 +12,11 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
 
-    "isolatedModules": true
+    "isolatedModules": true,
+
+    "paths": {
+      "compiler": ["./src/compiler"]
+    }
   },
   "include": ["src/**/*", "tests/**/*"]
 }

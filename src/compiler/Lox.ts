@@ -6,7 +6,6 @@ import { Token } from "./Tokens";
 import { Parser } from "./Parser";
 import { RuntimeError } from "./RuntimeError";
 import { Interpreter } from "./Interpreter";
-import { Stmt } from "./Stmt";
 import { Resolver } from "./Resolver";
 
 export class Lox {
@@ -48,13 +47,11 @@ export class Lox {
     if (this.hadError) return;
 
     const resolver = new Resolver(this.interpreter);
-    resolver.resolve(statements.filter((stmt): stmt is Stmt => stmt !== null));
+    resolver.resolve(statements);
 
     if (this.hadError) return;
 
-    this.interpreter.interpret(
-      statements.filter((stmt): stmt is Stmt => stmt !== null)
-    );
+    this.interpreter.interpret(statements);
   }
 
   static runFile(path: string): void {

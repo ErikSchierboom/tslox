@@ -35,11 +35,14 @@ export class Parser {
 
   constructor(private readonly tokens: Token[]) {}
 
-  parse(): (Stmt | null)[] {
-    const statements = [];
+  parse(): Stmt[] {
+    const statements: Stmt[] = [];
 
     while (!this.isAtEnd()) {
-      statements.push(this.declaration());
+      const declaration = this.declaration();
+      if (declaration !== null) {
+        statements.push();
+      }
     }
 
     return statements;
