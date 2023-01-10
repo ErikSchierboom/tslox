@@ -12,11 +12,16 @@ import {
   LogicalExpr,
   SetExpr,
   ThisExpr,
+  SuperExpr,
 } from "./Expr";
 
 export class AstPrinter implements ExprVisitor<string> {
   print(expr: Expr): string {
     return expr.accept(this);
+  }
+
+  visitSuperExpr(expr: SuperExpr): string {
+    return this.parenthesize("super");
   }
 
   visitCallExpr(expr: CallExpr): string {

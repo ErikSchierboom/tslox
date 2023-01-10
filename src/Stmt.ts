@@ -1,4 +1,4 @@
-import { Expr } from "./Expr";
+import { Expr, VariableExpr } from "./Expr";
 import { Token } from "./Tokens";
 
 export abstract class Stmt {

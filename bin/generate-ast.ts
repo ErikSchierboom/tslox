@@ -107,5 +107,8 @@ defineAst(
     "Return:     Token keyword, Expr|null value",
     "While:      Expr condition, Stmt body",
   ],
-  ['import { Expr } from "./Expr";', 'import { Token } from "./Tokens";']
+  [
+    'import { Expr, VariableExpr } from "./Expr";',
+    'import { Token } from "./Tokens";',
+  ]
 );
