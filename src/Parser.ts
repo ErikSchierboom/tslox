@@ -31,7 +31,7 @@ import { Token, TokenType } from "./Tokens";
 export class ParseError extends Error {}
 
 export class Parser {
-  private current: number = 0;
+  private current = 0;
 
   constructor(private readonly tokens: Token[]) {}
 
