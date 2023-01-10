@@ -21,7 +21,7 @@ export class AstPrinter implements ExprVisitor<string> {
   }
 
   visitSuperExpr(expr: SuperExpr): string {
-    return this.parenthesize("super");
+    return this.parenthesize(`super ${expr.method.lexeme}`);
   }
 
   visitCallExpr(expr: CallExpr): string {
