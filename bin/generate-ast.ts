@@ -71,7 +71,7 @@ function defineVisitor(writer: WriteStream, baseName: string, types: string[]) {
   writer.write("}\n");
 }
 
-const outputDir = resolve("./src");
+const outputDir = resolve("./src/compiler");
 
 defineAst(
   outputDir,

@@ -1,4 +1,4 @@
-import { Lox } from "../src/Lox";
+import { Lox } from "../../src/compiler/Lox";
 
 export function run(source: string): { logs: string[]; errors: string[] } {
   const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
