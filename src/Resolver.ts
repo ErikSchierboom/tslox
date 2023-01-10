@@ -93,11 +93,11 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
     if (stmt.superclass !== null) {
       this.beginScope();
-      this.scopes.at(-1)!.set("super", true);
+      this.scopes.at(-1)?.set("super", true);
     }
 
     this.beginScope();
-    this.scopes.at(-1)!.set("this", true);
+    this.scopes.at(-1)?.set("this", true);
 
     for (const method of stmt.methods) {
       const declaration: FunctionType =
@@ -132,7 +132,10 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   visitGroupingExpr(expr: GroupingExpr): void {
     this.resolve(expr.expression);
   }
-  visitLiteralExpr(expr: LiteralExpr): void {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  visitLiteralExpr(expr: LiteralExpr): void {
+    return;
+  }
   visitLogicalExpr(expr: LogicalExpr): void {
     this.resolve(expr.left);
     this.resolve(expr.right);
@@ -140,7 +143,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   visitVariableExpr(expr: VariableExpr): void {
     if (
       this.scopes.length > 0 &&
-      this.scopes.at(-1)!.get(expr.name.lexeme) === false
+      this.scopes.at(-1)?.get(expr.name.lexeme) === false
     ) {
       Lox.error(expr.name, "Can't read local variable in its own initializer.");
     }
@@ -242,18 +245,18 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   private declare(name: Token): void {
     if (this.scopes.length === 0) return;
 
-    const scope = this.scopes.at(-1)!;
-    if (scope.has(name.lexeme)) {
+    const scope = this.scopes.at(-1);
+    if (scope?.has(name.lexeme)) {
       Lox.error(name, "Already a variable with this name in this scope.");
     }
 
-    scope.set(name.lexeme, false);
+    scope?.set(name.lexeme, false);
   }
 
   private define(name: Token): void {
     if (this.scopes.length === 0) return;
 
-    const scope = this.scopes.at(-1)!;
-    scope.set(name.lexeme, true);
+    const scope = this.scopes.at(-1);
+    scope?.set(name.lexeme, true);
   }
 }

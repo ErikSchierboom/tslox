@@ -3,11 +3,11 @@ import { RuntimeError } from "./RuntimeError";
 import { Token } from "./Tokens";
 
 export class LoxInstance {
-  private readonly fields: Map<string, any> = new Map();
+  private readonly fields: Map<string, unknown> = new Map();
 
   constructor(readonly klass: LoxClass) {}
 
-  get(name: Token): any {
+  get(name: Token): unknown {
     if (this.fields.has(name.lexeme)) {
       return this.fields.get(name.lexeme);
     }
@@ -18,7 +18,7 @@ export class LoxInstance {
     throw new RuntimeError(name, `Undefined property '${name.lexeme}'.`);
   }
 
-  set(name: Token, value: any): void {
+  set(name: Token, value: unknown): void {
     this.fields.set(name.lexeme, value);
   }
 

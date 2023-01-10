@@ -4,14 +4,17 @@ import { LoxCallable } from "./LoxCallable";
 export class LoxBuiltin implements LoxCallable {
   constructor(
     private readonly callbackArity: number,
-    private readonly callback: (interpreter: Interpreter, args: any[]) => any
+    private readonly callback: (
+      interpreter: Interpreter,
+      args: unknown[]
+    ) => unknown
   ) {}
 
   arity(): number {
     return this.callbackArity;
   }
 
-  call(interpreter: Interpreter, args: any[]): any {
+  call(interpreter: Interpreter, args: unknown[]): unknown {
     return this.callback(interpreter, args);
   }
 

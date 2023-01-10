@@ -15,7 +15,7 @@ export class LoxClass implements LoxCallable {
     return initializer === undefined ? 0 : initializer.arity();
   }
 
-  call(interpreter: Interpreter, args: any[]) {
+  call(interpreter: Interpreter, args: unknown[]) {
     const instance = new LoxInstance(this);
     const initializer = this.findMethod("init");
     if (initializer !== undefined) {

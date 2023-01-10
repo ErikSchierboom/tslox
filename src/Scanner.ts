@@ -1,5 +1,5 @@
 import { Lox } from "./Lox";
-import { Token, TokenType } from "./Tokens";
+import { Literal, Token, TokenType } from "./Tokens";
 
 export class Scanner {
   static keywords: { [key: string]: TokenType } = {
@@ -22,9 +22,9 @@ export class Scanner {
   };
 
   private readonly tokens: Token[] = [];
-  private start: number = 0;
-  private current: number = 0;
-  private line: number = 1;
+  private start = 0;
+  private current = 0;
+  private line = 1;
 
   constructor(private readonly source: string) {}
 
@@ -176,7 +176,7 @@ export class Scanner {
     return this.source.charAt(this.current++);
   }
 
-  private addToken(type: TokenType, literal: any = null): void {
+  private addToken(type: TokenType, literal: Literal = null): void {
     const text = this.source.substring(this.start, this.current);
     this.tokens.push(new Token(type, text, literal, this.line));
   }

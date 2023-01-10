@@ -1,5 +1,5 @@
 export class Return extends Error {
-  constructor(readonly value: any) {
+  constructor(readonly value: unknown) {
     super();
   }
 }

@@ -22,7 +22,7 @@ export class LoxFunction implements LoxCallable {
     return this.declaration.params.length;
   }
 
-  call(interpreter: Interpreter, args: any[]): any {
+  call(interpreter: Interpreter, args: unknown[]): unknown {
     const environment = new Environment(this.closure);
     for (const i in this.declaration.params) {
       environment.define(this.declaration.params[i].lexeme, args[i]);

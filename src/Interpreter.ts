@@ -38,7 +38,7 @@ import {
 } from "./Stmt";
 import { Token } from "./Tokens";
 
-export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
+export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
   public globals = new Environment();
   private environment: Environment = this.globals;
   private readonly locals: Map<Expr, number> = new Map();
@@ -65,16 +65,23 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     this.locals.set(expr, depth);
   }
 
-  private execute(stmt: Stmt) {
+  private execute(stmt: Stmt): void {
     stmt.accept(this);
   }
 
-  private evaluate(expr: Expr): any {
+  private evaluate(expr: Expr): unknown {
     return expr.accept(this);
   }
 
-  visitSuperExpr(expr: SuperExpr) {
-    const distance = this.locals.get(expr)!;
+  visitSuperExpr(expr: SuperExpr): unknown {
+    const distance = this.locals.get(expr);
+    if (distance === undefined) {
+      throw new RuntimeError(
+        expr.method,
+        `Undefined property '${expr.method.lexeme}'.`
+      );
+    }
+
     const superclass = this.environment.getAt(distance, "super") as LoxClass;
     const instance = this.environment.getAt(
       distance - 1,
@@ -92,11 +99,11 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     return method.bind(instance);
   }
 
-  visitThisExpr(expr: ThisExpr) {
+  visitThisExpr(expr: ThisExpr): unknown {
     return this.lookupVariable(expr.keyword, expr);
   }
 
-  visitSetExpr(expr: SetExpr): any {
+  visitSetExpr(expr: SetExpr): unknown {
     const obj = this.evaluate(expr.obj);
 
     if (!(obj instanceof LoxInstance)) {
@@ -108,7 +115,7 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     return value;
   }
 
-  visitGetExpr(expr: GetExpr): any {
+  visitGetExpr(expr: GetExpr): unknown {
     const obj = this.evaluate(expr.obj);
     if (obj instanceof LoxInstance) {
       return obj.get(expr.name);
@@ -120,13 +127,15 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
   visitClassStmt(stmt: ClassStmt): void {
     let superclass: LoxClass | null = null;
     if (stmt.superclass != null) {
-      superclass = this.evaluate(stmt.superclass);
-      if (!(superclass instanceof LoxClass)) {
+      const evaluated = this.evaluate(stmt.superclass);
+      if (!(evaluated instanceof LoxClass)) {
         throw new RuntimeError(
           stmt.superclass.name,
           "Superclass must be a class."
         );
       }
+
+      superclass = evaluated;
     }
 
     this.environment.define(stmt.name.lexeme, null);
@@ -149,6 +158,7 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     const klass = new LoxClass(stmt.name.lexeme, superclass, methods);
 
     if (superclass != null) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this.environment = this.environment.enclosing!;
     }
 
@@ -165,7 +175,7 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     this.environment.define(stmt.name.lexeme, func);
   }
 
-  visitCallExpr(expr: CallExpr) {
+  visitCallExpr(expr: CallExpr): unknown {
     const callee = this.evaluate(expr.callee);
     const args = expr.args.map((arg) => this.evaluate(arg));
 
@@ -220,7 +230,7 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     console.log(this.stringify(value));
   }
 
-  visitAssignExpr(expr: AssignExpr): any {
+  visitAssignExpr(expr: AssignExpr): unknown {
     const value = this.evaluate(expr.value);
     const distance = this.locals.get(expr);
     if (distance !== undefined) {
@@ -232,11 +242,11 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     return value;
   }
 
-  visitVariableExpr(expr: VariableExpr): any {
+  visitVariableExpr(expr: VariableExpr): unknown {
     return this.lookupVariable(expr.name, expr);
   }
 
-  visitLogicalExpr(expr: LogicalExpr) {
+  visitLogicalExpr(expr: LogicalExpr): unknown {
     const left = this.evaluate(expr.left);
 
     if (expr.operator.type == "OR") {
@@ -252,35 +262,42 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     return this.evaluate(expr.right);
   }
 
-  visitBinaryExpr(expr: BinaryExpr): any {
+  visitBinaryExpr(expr: BinaryExpr): unknown {
     const left = this.evaluate(expr.left);
     const right = this.evaluate(expr.right);
 
     switch (expr.operator.type) {
       case "GREATER":
-        this.checkNumberOperands(expr.operator, left, right);
+        this.checkNumberOperand(expr.operator, left);
+        this.checkNumberOperand(expr.operator, right);
         return left > right;
       case "GREATER_EQUAL":
-        this.checkNumberOperands(expr.operator, left, right);
+        this.checkNumberOperand(expr.operator, left);
+        this.checkNumberOperand(expr.operator, right);
         return left >= right;
       case "LESS":
-        this.checkNumberOperands(expr.operator, left, right);
+        this.checkNumberOperand(expr.operator, left);
+        this.checkNumberOperand(expr.operator, right);
         return left < right;
       case "LESS_EQUAL":
-        this.checkNumberOperands(expr.operator, left, right);
+        this.checkNumberOperand(expr.operator, left);
+        this.checkNumberOperand(expr.operator, right);
         return left <= right;
       case "BANG_EQUAL":
         return !this.isEqual(left, right);
       case "EQUAL_EQUAL":
         return this.isEqual(left, right);
       case "MINUS":
-        this.checkNumberOperands(expr.operator, left, right);
+        this.checkNumberOperand(expr.operator, left);
+        this.checkNumberOperand(expr.operator, right);
         return left - right;
       case "SLASH":
-        this.checkNumberOperands(expr.operator, left, right);
+        this.checkNumberOperand(expr.operator, left);
+        this.checkNumberOperand(expr.operator, right);
         return left / right;
       case "STAR":
-        this.checkNumberOperands(expr.operator, left, right);
+        this.checkNumberOperand(expr.operator, left);
+        this.checkNumberOperand(expr.operator, right);
         return left * right;
       case "PLUS":
         if (typeof left === "number" && typeof right === "number")
@@ -298,15 +315,15 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     return null;
   }
 
-  visitGroupingExpr(expr: GroupingExpr): any {
+  visitGroupingExpr(expr: GroupingExpr): unknown {
     return this.evaluate(expr.expression);
   }
 
-  visitLiteralExpr(expr: LiteralExpr): any {
+  visitLiteralExpr(expr: LiteralExpr): unknown {
     return expr.value;
   }
 
-  visitUnaryExpr(expr: UnaryExpr): any {
+  visitUnaryExpr(expr: UnaryExpr): unknown {
     const right = this.evaluate(expr.right);
 
     switch (expr.operator.type) {
@@ -334,18 +351,15 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     }
   }
 
-  private checkNumberOperands(operator: Token, left: any, right: any) {
-    if (typeof left === "number" && typeof right === "number") return;
-    throw new RuntimeError(operator, "Operands must be numbers");
-  }
-
-  private checkNumberOperand(operator: Token, operand: any) {
+  private checkNumberOperand(
+    operator: Token,
+    operand: unknown
+  ): asserts operand is number {
     if (typeof operand === "number") return;
-
     throw new RuntimeError(operator, "Operand must be a number");
   }
 
-  private isEqual(a: any, b: any) {
+  private isEqual(a: unknown, b: unknown) {
     // TODO: see if this can be simplified
     if (a === null && b === null) return true;
     if (a === null) return false;
@@ -353,14 +367,14 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     return a === b;
   }
 
-  private isTruthy(value: any) {
+  private isTruthy(value: unknown) {
     if (value === null) return false;
     if (value === false) return false;
     return true;
   }
 
-  private stringify(value: any): any {
-    if (value === null) return "nil";
+  private stringify(value: unknown): unknown {
+    if (value === null || value === undefined) return "nil";
 
     if (typeof value === "number") {
       let text = value.toString();
@@ -373,7 +387,7 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
     return value.toString();
   }
 
-  private lookupVariable(name: Token, expr: Expr): any {
+  private lookupVariable(name: Token, expr: Expr): unknown {
     const distance = this.locals.get(expr);
     if (distance !== undefined) {
       return this.environment.getAt(distance, name.lexeme);
