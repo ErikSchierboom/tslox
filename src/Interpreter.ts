@@ -16,6 +16,7 @@ import {
   SuperExpr,
 } from "./Expr";
 import { Lox } from "./Lox";
+import { LoxBuiltin } from "./LoxBuiltin";
 import { isLoxCallable } from "./LoxCallable";
 import { LoxClass } from "./LoxClass";
 import { LoxFunction } from "./LoxFunction";
@@ -43,11 +44,7 @@ export class Interpreter implements ExprVisitor<any>, StmtVisitor<void> {
   private readonly locals: Map<Expr, number> = new Map();
 
   constructor() {
-    this.globals.define("clock", {
-      arity: () => 0,
-      call: (interpreter: Interpreter, args: any[]) => Date.now() / 1000,
-      toString: () => "<native fn>",
-    });
+    this.globals.define("clock", new LoxBuiltin(0, () => Date.now() / 1000));
   }
 
   interpret(statements: Stmt[]): void {
