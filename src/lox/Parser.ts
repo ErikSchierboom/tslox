@@ -40,7 +40,7 @@ export class Parser {
     while (!this.isAtEnd()) {
       const declaration = this.declaration();
       if (declaration !== null) {
-        statements.push();
+        statements.push(declaration);
       }
     }
 
