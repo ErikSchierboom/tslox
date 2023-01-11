@@ -28,13 +28,18 @@ import {
 } from "./Stmt";
 import { Token, TokenType } from "./Tokens";
 
+export type ParseResult = Readonly<{
+  statements: Stmt[];
+  errors: ParseError[];
+}>;
+
 export class Parser {
   private current = 0;
   private readonly errors: ParseError[] = [];
 
   constructor(private readonly tokens: Token[]) {}
 
-  parse(): [Stmt[], ParseError[]] {
+  parse(): ParseResult {
     const statements: Stmt[] = [];
 
     while (!this.isAtEnd()) {
@@ -44,7 +49,7 @@ export class Parser {
       }
     }
 
-    return [statements, this.errors];
+    return { statements, errors: this.errors };
   }
 
   private declaration(): Stmt | null {

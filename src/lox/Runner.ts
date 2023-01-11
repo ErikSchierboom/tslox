@@ -27,24 +27,24 @@ export class Runner {
     this.runtimeErrors = [];
 
     const scanner = new Scanner(source);
-    const [tokens, scanErrors] = scanner.scanTokens();
+    const { tokens, errors: scanErrors } = scanner.scanTokens();
 
     this.parseErrors.push(...scanErrors);
     if (this.parseErrors.length > 0) return this.createRun(tokens);
 
     const parser = new Parser(tokens);
-    const [statements, parseErrors] = parser.parse();
+    const { statements, errors: parseErrors } = parser.parse();
 
     this.parseErrors.push(...parseErrors);
     if (this.parseErrors.length > 0) return this.createRun(tokens, statements);
 
     const resolver = new Resolver(this.interpreter);
-    const resolveErrors = resolver.resolve(statements);
+    const { errors: resolveErrors } = resolver.resolve(statements);
 
     this.parseErrors.push(...resolveErrors);
     if (this.parseErrors.length > 0) return this.createRun(tokens, statements);
 
-    const [output, variables, runtimeErrors] =
+    const { output, variables, runtimeErrors } =
       this.interpreter.interpret(statements);
     this.runtimeErrors.push(...runtimeErrors);
 

@@ -1,6 +1,11 @@
 import { ParseError } from "./ParseError";
 import { Literal, Span, Token, TokenType } from "./Tokens";
 
+export type ScanResult = Readonly<{
+  tokens: Token[];
+  errors: ParseError[];
+}>;
+
 export class Scanner {
   static keywords: { [key: string]: TokenType } = {
     and: "AND",
@@ -29,7 +34,7 @@ export class Scanner {
 
   constructor(private readonly source: string) {}
 
-  scanTokens(): [Token[], ParseError[]] {
+  scanTokens(): ScanResult {
     while (!this.isAtEnd()) {
       this.start = this.current;
       this.scanToken();
@@ -41,7 +46,7 @@ export class Scanner {
       literal: undefined,
       span: this.span(),
     });
-    return [this.tokens, this.errors];
+    return { tokens: this.tokens, errors: this.errors };
   }
 
   private scanToken(): void {

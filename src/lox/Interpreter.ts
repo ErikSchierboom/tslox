@@ -42,6 +42,12 @@ export type Variable = Readonly<{
   value: unknown;
 }>;
 
+export type InterpreterResult = Readonly<{
+  output: string[];
+  variables: Variable[];
+  runtimeErrors: RuntimeError[];
+}>;
+
 export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
   private globals = new Environment();
   private environment: Environment = this.globals;
@@ -53,7 +59,7 @@ export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
     this.globals.define("clock", new LoxBuiltin(0, () => Date.now() / 1000));
   }
 
-  interpret(statements: Stmt[]): [string[], Variable[], RuntimeError[]] {
+  interpret(statements: Stmt[]): InterpreterResult {
     this.output = [];
     this.variables = [];
 
@@ -62,11 +68,21 @@ export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
         this.execute(statement);
       }
 
-      return [this.output, this.variables, []];
+      return {
+        output: this.output,
+        variables: this.variables,
+        runtimeErrors: [],
+      };
     } catch (error) {
-      if (error instanceof RuntimeError)
-        return [this.output, this.variables, [error]];
-      else throw error;
+      if (error instanceof RuntimeError) {
+        return {
+          output: this.output,
+          variables: this.variables,
+          runtimeErrors: [error],
+        };
+      }
+
+      throw error;
     }
   }
 

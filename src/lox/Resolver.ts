@@ -16,7 +16,6 @@ import {
 } from "./Expr";
 import { Interpreter } from "./Interpreter";
 import { ParseError } from "./ParseError";
-import { Runner } from "./Runner";
 import {
   BlockStmt,
   ClassStmt,
@@ -35,6 +34,10 @@ import { Token } from "./Tokens";
 type FunctionType = "NONE" | "FUNCTION" | "INITIALIZER" | "METHOD";
 type ClassType = "NONE" | "CLASS" | "SUBCLASS";
 
+export type ResolveResult = {
+  errors: ParseError[];
+};
+
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   private readonly scopes: Map<string, boolean>[] = [];
   private readonly errors: ParseError[] = [];
@@ -42,6 +45,18 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   private currentClass: ClassType = "NONE";
 
   constructor(private readonly interpreter: Interpreter) {}
+
+  resolve(element: Expr | Stmt | Stmt[]): ResolveResult {
+    if (element instanceof Expr || element instanceof Stmt) {
+      element.accept(this);
+    } else {
+      for (const statement of element) {
+        this.resolve(statement);
+      }
+    }
+
+    return { errors: this.errors };
+  }
 
   visitSuperExpr(expr: SuperExpr): void {
     if (this.currentClass == "NONE") {
@@ -204,18 +219,6 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   visitWhileStmt(stmt: WhileStmt): void {
     this.resolve(stmt.condition);
     this.resolve(stmt.body);
-  }
-
-  resolve(element: Expr | Stmt | Stmt[]): ParseError[] {
-    if (element instanceof Expr || element instanceof Stmt) {
-      element.accept(this);
-    } else {
-      for (const statement of element) {
-        this.resolve(statement);
-      }
-    }
-
-    return this.errors;
   }
 
   private resolveLocal(expr: Expr, name: Token): void {
