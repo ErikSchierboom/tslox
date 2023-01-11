@@ -8,12 +8,13 @@ import { Resolver } from "./Resolver";
 export class Runner {
   private static interpreter = new Interpreter();
 
+  static runtimeErrors: RuntimeError[] = [];
+
   static hadError = false;
   static hadRuntimeError = false;
 
   static runtimeError(error: RuntimeError) {
-    console.error(error.message);
-    console.error(`[line ${error.token.line}]`);
+    this.runtimeErrors.push(error);
     this.hadRuntimeError = true;
   }
 
