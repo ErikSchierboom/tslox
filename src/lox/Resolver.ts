@@ -15,7 +15,7 @@ import {
   VariableExpr,
 } from "./Expr";
 import { Interpreter } from "./Interpreter";
-import { Lox } from "./Lox";
+import { Runner } from "./Runner";
 import {
   BlockStmt,
   ClassStmt,
@@ -43,9 +43,9 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
   visitSuperExpr(expr: SuperExpr): void {
     if (this.currentClass == "NONE") {
-      Lox.error(expr.keyword, "Can't use 'super' outside of a class.");
+      Runner.error(expr.keyword, "Can't use 'super' outside of a class.");
     } else if (this.currentClass != "SUBCLASS") {
-      Lox.error(
+      Runner.error(
         expr.keyword,
         "Can't use 'super' in a class with no superclass."
       );
@@ -56,7 +56,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
   visitThisExpr(expr: ThisExpr): void {
     if (this.currentClass == "NONE") {
-      Lox.error(expr.keyword, "Can't use 'this' outside of a class.");
+      Runner.error(expr.keyword, "Can't use 'this' outside of a class.");
       return;
     }
 
@@ -83,7 +83,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
       stmt.superclass !== null &&
       stmt.name.lexeme === stmt.superclass.name.lexeme
     ) {
-      Lox.error(stmt.superclass.name, "A class can't inherit from itself.");
+      Runner.error(stmt.superclass.name, "A class can't inherit from itself.");
     }
 
     if (stmt.superclass !== null) {
@@ -145,7 +145,10 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
       this.scopes.length > 0 &&
       this.scopes.at(-1)?.get(expr.name.lexeme) === false
     ) {
-      Lox.error(expr.name, "Can't read local variable in its own initializer.");
+      Runner.error(
+        expr.name,
+        "Can't read local variable in its own initializer."
+      );
     }
 
     this.resolveLocal(expr, expr.name);
@@ -185,12 +188,12 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   }
   visitReturnStmt(stmt: ReturnStmt): void {
     if (this.currentFunction == "NONE") {
-      Lox.error(stmt.keyword, "Can't return from top-level code.");
+      Runner.error(stmt.keyword, "Can't return from top-level code.");
     }
 
     if (stmt.value !== null) {
       if (this.currentFunction == "INITIALIZER") {
-        Lox.error(stmt.keyword, "Can't return from an initializer.");
+        Runner.error(stmt.keyword, "Can't return from an initializer.");
       }
 
       this.resolve(stmt.value);
@@ -247,7 +250,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
     const scope = this.scopes.at(-1);
     if (scope?.has(name.lexeme)) {
-      Lox.error(name, "Already a variable with this name in this scope.");
+      Runner.error(name, "Already a variable with this name in this scope.");
     }
 
     scope?.set(name.lexeme, false);

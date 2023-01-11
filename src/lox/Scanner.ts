@@ -1,4 +1,4 @@
-import { Lox } from "./Lox";
+import { Runner } from "./Runner";
 import { Literal, Token, TokenType } from "./Tokens";
 
 export class Scanner {
@@ -106,7 +106,7 @@ export class Scanner {
         } else if (this.isAlpha(c)) {
           this.identifier();
         } else {
-          Lox.error(this.line, "Unexpected character");
+          Runner.error(this.line, "Unexpected character");
         }
 
         break;
@@ -149,7 +149,7 @@ export class Scanner {
     }
 
     if (this.isAtEnd()) {
-      Lox.error(this.line, "Unterminated string.");
+      Runner.error(this.line, "Unterminated string.");
       return;
     }
 

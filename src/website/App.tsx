@@ -1,10 +1,10 @@
 import React, { FormEvent, useState } from "react";
-import { AstPrinter } from "../compiler/AstPrinter";
-import { Interpreter } from "../compiler/Interpreter";
-import { Lox } from "../compiler/Lox";
-import { Parser } from "../compiler/Parser";
-import { Resolver } from "../compiler/Resolver";
-import { Scanner } from "../compiler/Scanner";
+import { AstPrinter } from "../lox/AstPrinter";
+import { Interpreter } from "../lox/Interpreter";
+import { Runner } from "../lox/Runner";
+import { Parser } from "../lox/Parser";
+import { Resolver } from "../lox/Resolver";
+import { Scanner } from "../lox/Scanner";
 
 export function App() {
   const interpreter = new Interpreter();
@@ -24,12 +24,12 @@ export function App() {
     const parser = new Parser(tokens);
     const statements = parser.parse();
 
-    if (Lox.hadError) return;
+    if (Runner.hadError) return;
 
     const resolver = new Resolver(interpreter);
     resolver.resolve(statements);
 
-    if (Lox.hadError) return;
+    if (Runner.hadError) return;
 
     interpreter.interpret(statements);
   };

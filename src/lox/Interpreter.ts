@@ -15,7 +15,7 @@ import {
   ThisExpr,
   SuperExpr,
 } from "./Expr";
-import { Lox } from "./Lox";
+import { Runner } from "./Runner";
 import { LoxBuiltin } from "./LoxBuiltin";
 import { isLoxCallable } from "./LoxCallable";
 import { LoxClass } from "./LoxClass";
@@ -54,7 +54,7 @@ export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
       }
     } catch (error) {
       if (error instanceof RuntimeError) {
-        Lox.runtimeError(error);
+        Runner.runtimeError(error);
       } else {
         throw error;
       }

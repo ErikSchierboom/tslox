@@ -4,7 +4,7 @@
   "scripts": {
     "start": "parcel --target website",
     "build": "parcel build --target website",
-    "compiler": "parcel build --target compiler --no-optimize --no-scope-hoist && node dist/main.js",
+    "application": "parcel build --target application --no-optimize --no-scope-hoist && node dist/application/lox.js",
     "generate-ast": "parcel build --target ast-generator --no-optimize --no-scope-hoist && node dist/generate-ast.js && npm run format",
     "format": "prettier --write .",
     "ci": "npm run lint && npm run check && npm test",
@@ -14,11 +14,11 @@
   },
   "targets": {
     "website": {
-      "source": "src/frontend/index.html",
+      "source": "src/website/index.html",
       "context": "browser"
     },
-    "compiler": {
-      "source": "src/compiler/main.ts",
+    "application": {
+      "source": "src/lox/lox.ts",
       "context": "node"
     },
     "ast-generator": {

@@ -13,7 +13,7 @@ import {
   UnaryExpr,
   VariableExpr,
 } from "./Expr";
-import { Lox } from "./Lox";
+import { Runner } from "./Runner";
 import {
   BlockStmt,
   ClassStmt,
@@ -398,7 +398,7 @@ export class Parser {
   }
 
   private error(token: Token, message: string): ParseError {
-    Lox.error(token, message);
+    Runner.error(token, message);
     return new ParseError();
   }
 
