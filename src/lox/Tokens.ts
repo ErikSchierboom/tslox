@@ -46,15 +46,15 @@ export type TokenType =
 
 export type Literal = number | boolean | string | null | undefined;
 
-export type Span = {
-  readonly line: number;
-  readonly start: number;
-  readonly end: number;
-};
+export type Span = Readonly<{
+  line: number;
+  start: number;
+  end: number;
+}>;
 
-export type Token = {
-  readonly type: TokenType;
-  readonly lexeme: string;
-  readonly literal: Literal;
-  readonly span: Span;
-};
+export type Token = Readonly<{
+  type: TokenType;
+  lexeme: string;
+  literal: Literal;
+  span: Span;
+}>;

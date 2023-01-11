@@ -37,10 +37,10 @@ import {
 } from "./Stmt";
 import { Token } from "./Tokens";
 
-export type Variable = {
-  readonly token: Token;
-  readonly value: unknown;
-};
+export type Variable = Readonly<{
+  token: Token;
+  value: unknown;
+}>;
 
 export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
   private globals = new Environment();

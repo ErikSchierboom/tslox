@@ -7,14 +7,14 @@ import { Resolver } from "./Resolver";
 import { Token } from "./Tokens";
 import { Stmt } from "./Stmt";
 
-export type Run = {
-  readonly parseErrors: ParseError[];
-  readonly runtimeErrors: RuntimeError[];
-  readonly tokens: Token[];
-  readonly statements: Stmt[];
-  readonly output: string[];
-  readonly variables: Variable[];
-};
+export type Run = Readonly<{
+  parseErrors: ParseError[];
+  runtimeErrors: RuntimeError[];
+  tokens: Token[];
+  statements: Stmt[];
+  output: string[];
+  variables: Variable[];
+}>;
 
 export class Runner {
   private static interpreter = new Interpreter();
