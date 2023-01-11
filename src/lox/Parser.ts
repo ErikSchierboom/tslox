@@ -13,6 +13,7 @@ import {
   UnaryExpr,
   VariableExpr,
 } from "./Expr";
+import { ParseError } from "./ParseError";
 import { Runner } from "./Runner";
 import {
   BlockStmt,
@@ -28,14 +29,13 @@ import {
 } from "./Stmt";
 import { Token, TokenType } from "./Tokens";
 
-export class ParseError extends Error {}
-
 export class Parser {
   private current = 0;
+  private readonly errors: ParseError[] = [];
 
   constructor(private readonly tokens: Token[]) {}
 
-  parse(): Stmt[] {
+  parse(): [Stmt[], ParseError[]] {
     const statements: Stmt[] = [];
 
     while (!this.isAtEnd()) {
@@ -45,7 +45,7 @@ export class Parser {
       }
     }
 
-    return statements;
+    return [statements, this.errors];
   }
 
   private declaration(): Stmt | null {
@@ -398,8 +398,9 @@ export class Parser {
   }
 
   private error(token: Token, message: string): ParseError {
-    Runner.error(token, message);
-    return new ParseError();
+    const error = ParseError.atToken(token, message);
+    this.errors.push(error);
+    return error;
   }
 
   private match(...types: TokenType[]): boolean {

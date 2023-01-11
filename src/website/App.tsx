@@ -16,22 +16,7 @@ export function App() {
   const handleChange = function (event: FormEvent<HTMLTextAreaElement>) {
     const source = event.currentTarget.value;
 
-    const interpreter = new Interpreter();
-
-    const scanner = new Scanner(source);
-    const tokens = scanner.scanTokens();
-
-    const parser = new Parser(tokens);
-    const statements = parser.parse();
-
-    if (Runner.hadError) return;
-
-    const resolver = new Resolver(interpreter);
-    resolver.resolve(statements);
-
-    if (Runner.hadError) return;
-
-    interpreter.interpret(statements);
+    Runner.run(source);
   };
 
   return (

@@ -1,5 +1,5 @@
 import { Scanner } from "./Scanner";
-import { Token } from "./Tokens";
+import { ParseError } from "./ParseError";
 import { Parser } from "./Parser";
 import { RuntimeError } from "./RuntimeError";
 import { Interpreter } from "./Interpreter";
@@ -8,46 +8,32 @@ import { Resolver } from "./Resolver";
 export class Runner {
   private static interpreter = new Interpreter();
 
+  static parseErrors: ParseError[] = [];
   static runtimeErrors: RuntimeError[] = [];
 
-  static hadError = false;
-
-  static error(context: number | Token, message: string): void {
-    if (context instanceof Token) {
-      if (context.type == "EOF") {
-        this.report(context.line, " at end", message);
-      } else {
-        this.report(context.line, ` at '${context.lexeme}'`, message);
-      }
-    } else {
-      this.report(context, "", message);
-    }
-  }
-
-  static report(line: number, where: string, message: string): void {
-    console.error(`[line ${line}] Error${where} ${message}`);
-    this.hadError = true;
-  }
-
   static run(source: string): void {
+    this.parseErrors = [];
+    this.runtimeErrors = [];
+
     const scanner = new Scanner(source);
-    const tokens = scanner.scanTokens(); // TODO: use iterator
+    const [tokens, scanErrors] = scanner.scanTokens();
+
+    this.parseErrors.push(...scanErrors);
+    if (this.parseErrors.length > 0) return;
 
     const parser = new Parser(tokens);
-    const statements = parser.parse();
+    const [statements, parseErrors] = parser.parse();
 
-    if (this.hadError) return;
+    this.parseErrors.push(...parseErrors);
+    if (this.parseErrors.length > 0) return;
 
     const resolver = new Resolver(this.interpreter);
-    resolver.resolve(statements);
+    const resolveErrors = resolver.resolve(statements);
 
-    if (this.hadError) return;
+    this.parseErrors.push(...resolveErrors);
+    if (this.parseErrors.length > 0) return;
 
-    try {
-      this.interpreter.interpret(statements);
-    } catch (error) {
-      if (error instanceof RuntimeError) this.runtimeErrors.push(error);
-      else throw error;
-    }
+    const runtimeError = this.interpreter.interpret(statements);
+    if (runtimeError !== undefined) this.runtimeErrors.push(runtimeError);
   }
 }

@@ -7,7 +7,7 @@ function runFile(path: string): void {
   const source = readFileSync(path, { encoding: "utf-8" });
   Runner.run(source);
 
-  if (Runner.hadError) exit(65);
+  if (Runner.parseErrors.length > 0) exit(65);
   if (Runner.runtimeErrors.length > 0) exit(70);
 }
 
@@ -21,7 +21,6 @@ function runPrompt(): void {
 
   rl.on("line", (line) => {
     Runner.run(line);
-    Runner.hadError = false;
     rl.prompt();
   }).on("close", () => process.exit());
 }

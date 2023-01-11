@@ -15,6 +15,7 @@ import {
   VariableExpr,
 } from "./Expr";
 import { Interpreter } from "./Interpreter";
+import { ParseError } from "./ParseError";
 import { Runner } from "./Runner";
 import {
   BlockStmt,
@@ -36,6 +37,7 @@ type ClassType = "NONE" | "CLASS" | "SUBCLASS";
 
 export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   private readonly scopes: Map<string, boolean>[] = [];
+  private readonly errors: ParseError[] = [];
   private currentFunction: FunctionType = "NONE";
   private currentClass: ClassType = "NONE";
 
@@ -43,9 +45,9 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
   visitSuperExpr(expr: SuperExpr): void {
     if (this.currentClass == "NONE") {
-      Runner.error(expr.keyword, "Can't use 'super' outside of a class.");
+      this.error(expr.keyword, "Can't use 'super' outside of a class.");
     } else if (this.currentClass != "SUBCLASS") {
-      Runner.error(
+      this.error(
         expr.keyword,
         "Can't use 'super' in a class with no superclass."
       );
@@ -56,7 +58,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
   visitThisExpr(expr: ThisExpr): void {
     if (this.currentClass == "NONE") {
-      Runner.error(expr.keyword, "Can't use 'this' outside of a class.");
+      this.error(expr.keyword, "Can't use 'this' outside of a class.");
       return;
     }
 
@@ -83,7 +85,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
       stmt.superclass !== null &&
       stmt.name.lexeme === stmt.superclass.name.lexeme
     ) {
-      Runner.error(stmt.superclass.name, "A class can't inherit from itself.");
+      this.error(stmt.superclass.name, "A class can't inherit from itself.");
     }
 
     if (stmt.superclass !== null) {
@@ -145,7 +147,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
       this.scopes.length > 0 &&
       this.scopes.at(-1)?.get(expr.name.lexeme) === false
     ) {
-      Runner.error(
+      this.error(
         expr.name,
         "Can't read local variable in its own initializer."
       );
@@ -188,12 +190,12 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
   }
   visitReturnStmt(stmt: ReturnStmt): void {
     if (this.currentFunction == "NONE") {
-      Runner.error(stmt.keyword, "Can't return from top-level code.");
+      this.error(stmt.keyword, "Can't return from top-level code.");
     }
 
     if (stmt.value !== null) {
       if (this.currentFunction == "INITIALIZER") {
-        Runner.error(stmt.keyword, "Can't return from an initializer.");
+        this.error(stmt.keyword, "Can't return from an initializer.");
       }
 
       this.resolve(stmt.value);
@@ -204,7 +206,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
     this.resolve(stmt.body);
   }
 
-  resolve(element: Expr | Stmt | Stmt[]): void {
+  resolve(element: Expr | Stmt | Stmt[]): ParseError[] {
     if (element instanceof Expr || element instanceof Stmt) {
       element.accept(this);
     } else {
@@ -212,6 +214,8 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
         this.resolve(statement);
       }
     }
+
+    return this.errors;
   }
 
   private resolveLocal(expr: Expr, name: Token): void {
@@ -250,7 +254,7 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
     const scope = this.scopes.at(-1);
     if (scope?.has(name.lexeme)) {
-      Runner.error(name, "Already a variable with this name in this scope.");
+      this.error(name, "Already a variable with this name in this scope.");
     }
 
     scope?.set(name.lexeme, false);
@@ -261,5 +265,9 @@ export class Resolver implements ExprVisitor<void>, StmtVisitor<void> {
 
     const scope = this.scopes.at(-1);
     scope?.set(name.lexeme, true);
+  }
+
+  private error(context: Token, message: string): void {
+    this.errors.push(ParseError.atToken(context, message));
   }
 }

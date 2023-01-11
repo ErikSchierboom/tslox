@@ -1,4 +1,4 @@
-import { Runner } from "./Runner";
+import { ParseError } from "./ParseError";
 import { Literal, Token, TokenType } from "./Tokens";
 
 export class Scanner {
@@ -22,20 +22,21 @@ export class Scanner {
   };
 
   private readonly tokens: Token[] = [];
+  private readonly errors: ParseError[] = [];
   private start = 0;
   private current = 0;
   private line = 1;
 
   constructor(private readonly source: string) {}
 
-  scanTokens(): Token[] {
+  scanTokens(): [Token[], ParseError[]] {
     while (!this.isAtEnd()) {
       this.start = this.current;
       this.scanToken();
     }
 
     this.tokens.push(new Token("EOF", "", null, this.line));
-    return this.tokens;
+    return [this.tokens, this.errors];
   }
 
   private scanToken(): void {
@@ -106,7 +107,7 @@ export class Scanner {
         } else if (this.isAlpha(c)) {
           this.identifier();
         } else {
-          Runner.error(this.line, "Unexpected character");
+          this.error("Unexpected character");
         }
 
         break;
@@ -149,7 +150,7 @@ export class Scanner {
     }
 
     if (this.isAtEnd()) {
-      Runner.error(this.line, "Unterminated string.");
+      this.error("Unterminated string.");
       return;
     }
 
@@ -195,5 +196,9 @@ export class Scanner {
 
   private isAlphaNumeric(c: string): boolean {
     return this.isAlpha(c) || this.isDigit(c);
+  }
+
+  private error(message: string): void {
+    this.errors.push(new ParseError(this.line, message));
   }
 }

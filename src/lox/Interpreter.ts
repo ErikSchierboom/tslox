@@ -47,9 +47,14 @@ export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
     this.globals.define("clock", new LoxBuiltin(0, () => Date.now() / 1000));
   }
 
-  interpret(statements: Stmt[]): void {
-    for (const statement of statements) {
-      this.execute(statement);
+  interpret(statements: Stmt[]): RuntimeError | undefined {
+    try {
+      for (const statement of statements) {
+        this.execute(statement);
+      }
+    } catch (error) {
+      if (error instanceof RuntimeError) return error;
+      else throw error;
     }
   }
 
