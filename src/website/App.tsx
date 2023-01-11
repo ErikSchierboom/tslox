@@ -42,6 +42,14 @@ export function App() {
             </ol>
           </div>
           <div>
+            Variables:
+            <ol>
+              {run.variables.map((variable, i) => (
+                <li key={i}>{JSON.stringify(variable)}</li>
+              ))}
+            </ol>
+          </div>
+          <div>
             Output:
             <ol>
               {run.output.map((output, i) => (

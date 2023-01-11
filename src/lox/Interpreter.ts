@@ -37,27 +37,35 @@ import {
 } from "./Stmt";
 import { Token } from "./Tokens";
 
+export type Variable = {
+  readonly token: Token;
+  readonly value: unknown;
+};
+
 export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
   private globals = new Environment();
   private environment: Environment = this.globals;
   private readonly locals: Map<Expr, number> = new Map();
   private output: string[] = [];
+  private variables: Variable[] = [];
 
   constructor() {
     this.globals.define("clock", new LoxBuiltin(0, () => Date.now() / 1000));
   }
 
-  interpret(statements: Stmt[]): [string[], RuntimeError[]] {
+  interpret(statements: Stmt[]): [string[], Variable[], RuntimeError[]] {
     this.output = [];
+    this.variables = [];
 
     try {
       for (const statement of statements) {
         this.execute(statement);
       }
 
-      return [this.output, []];
+      return [this.output, this.variables, []];
     } catch (error) {
-      if (error instanceof RuntimeError) return [this.output, [error]];
+      if (error instanceof RuntimeError)
+        return [this.output, this.variables, [error]];
       else throw error;
     }
   }
@@ -220,6 +228,8 @@ export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
       stmt.initializer === null ? null : this.evaluate(stmt.initializer);
 
     this.environment.define(stmt.name.lexeme, value);
+
+    this.variables.push({ token: stmt.name, value });
   }
 
   visitExpressionStmt(stmt: ExpressionStmt): void {
@@ -392,8 +402,8 @@ export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
     const distance = this.locals.get(expr);
     if (distance !== undefined) {
       return this.environment.getAt(distance, name.lexeme);
-    } else {
-      return this.globals.get(name);
     }
+
+    return this.globals.get(name);
   }
 }
