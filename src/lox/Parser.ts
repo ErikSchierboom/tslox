@@ -14,7 +14,6 @@ import {
   VariableExpr,
 } from "./Expr";
 import { ParseError } from "./ParseError";
-import { Runner } from "./Runner";
 import {
   BlockStmt,
   ClassStmt,
