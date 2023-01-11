@@ -12,7 +12,8 @@ export class Run {
     readonly parseErrors: ParseError[],
     readonly runtimeErrors: RuntimeError[],
     readonly tokens: Token[],
-    readonly statements: Stmt[]
+    readonly statements: Stmt[],
+    readonly output: string[]
   ) {}
 }
 
@@ -31,25 +32,43 @@ export class Runner {
 
     this.parseErrors.push(...scanErrors);
     if (this.parseErrors.length > 0)
-      return new Run(this.parseErrors, this.runtimeErrors, tokens, []);
+      return new Run(this.parseErrors, this.runtimeErrors, tokens, [], []);
 
     const parser = new Parser(tokens);
     const [statements, parseErrors] = parser.parse();
 
     this.parseErrors.push(...parseErrors);
     if (this.parseErrors.length > 0)
-      return new Run(this.parseErrors, this.runtimeErrors, tokens, statements);
+      return new Run(
+        this.parseErrors,
+        this.runtimeErrors,
+        tokens,
+        statements,
+        []
+      );
 
     const resolver = new Resolver(this.interpreter);
     const resolveErrors = resolver.resolve(statements);
 
     this.parseErrors.push(...resolveErrors);
     if (this.parseErrors.length > 0)
-      return new Run(this.parseErrors, this.runtimeErrors, tokens, statements);
+      return new Run(
+        this.parseErrors,
+        this.runtimeErrors,
+        tokens,
+        statements,
+        []
+      );
 
-    const runtimeError = this.interpreter.interpret(statements);
-    if (runtimeError !== undefined) this.runtimeErrors.push(runtimeError);
+    const [output, runtimeErrors] = this.interpreter.interpret(statements);
+    this.runtimeErrors.push(...runtimeErrors);
 
-    return new Run(this.parseErrors, this.runtimeErrors, tokens, statements);
+    return new Run(
+      this.parseErrors,
+      this.runtimeErrors,
+      tokens,
+      statements,
+      output
+    );
   }
 }

@@ -15,7 +15,6 @@ import {
   ThisExpr,
   SuperExpr,
 } from "./Expr";
-import { Runner } from "./Runner";
 import { LoxBuiltin } from "./LoxBuiltin";
 import { isLoxCallable } from "./LoxCallable";
 import { LoxClass } from "./LoxClass";
@@ -39,21 +38,26 @@ import {
 import { Token } from "./Tokens";
 
 export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
-  public globals = new Environment();
+  private globals = new Environment();
   private environment: Environment = this.globals;
   private readonly locals: Map<Expr, number> = new Map();
+  private output: string[] = [];
 
   constructor() {
     this.globals.define("clock", new LoxBuiltin(0, () => Date.now() / 1000));
   }
 
-  interpret(statements: Stmt[]): RuntimeError | undefined {
+  interpret(statements: Stmt[]): [string[], RuntimeError[]] {
+    this.output = [];
+
     try {
       for (const statement of statements) {
         this.execute(statement);
       }
+
+      return [this.output, []];
     } catch (error) {
-      if (error instanceof RuntimeError) return error;
+      if (error instanceof RuntimeError) return [this.output, [error]];
       else throw error;
     }
   }
@@ -224,7 +228,7 @@ export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
 
   visitPrintStmt(stmt: PrintStmt): void {
     const value = this.evaluate(stmt.expression);
-    console.log(this.stringify(value));
+    this.output.push(this.stringify(value));
   }
 
   visitAssignExpr(expr: AssignExpr): unknown {
@@ -370,7 +374,7 @@ export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
     return true;
   }
 
-  private stringify(value: unknown): unknown {
+  private stringify(value: unknown): string {
     if (value === null || value === undefined) return "nil";
 
     if (typeof value === "number") {

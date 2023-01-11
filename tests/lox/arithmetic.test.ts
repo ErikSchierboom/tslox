@@ -1,4 +1,4 @@
-import { run } from "./runner";
+import { Runner } from "../../src/lox/Runner";
 
 test("arithmetic", () => {
   const source = `
@@ -8,10 +8,10 @@ test("arithmetic", () => {
     print 15 / 3;
   `;
 
-  const result = run(source);
+  const result = Runner.run(source);
 
   const expected = ["3", "4", "6", "5"];
-  expect(result.logs).toEqual(expected);
+  expect(result.output).toEqual(expected);
 });
 
 test("arithmetic precedence", () => {
@@ -22,8 +22,8 @@ test("arithmetic precedence", () => {
     print 2 - (1 + 3);
   `;
 
-  const result = run(source);
+  const result = Runner.run(source);
 
   const expected = ["4", "20", "6", "-2"];
-  expect(result.logs).toEqual(expected);
+  expect(result.output).toEqual(expected);
 });

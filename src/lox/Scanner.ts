@@ -107,7 +107,7 @@ export class Scanner {
         } else if (this.isAlpha(c)) {
           this.identifier();
         } else {
-          this.error("Unexpected character");
+          this.error(`Unexpected character '${c}'.`);
         }
 
         break;

@@ -1,4 +1,4 @@
-import { run } from "./runner";
+import { Runner } from "../../src/lox/Runner";
 
 test("regular function", () => {
   const source = `
@@ -8,10 +8,10 @@ test("regular function", () => {
     print adder(3);
   `;
 
-  const result = run(source);
+  const result = Runner.run(source);
 
   const expected = ["5"];
-  expect(result.logs).toEqual(expected);
+  expect(result.output).toEqual(expected);
 });
 
 test("recursive function", () => {
@@ -26,8 +26,8 @@ test("recursive function", () => {
     print faculty(3);
   `;
 
-  const result = run(source);
+  const result = Runner.run(source);
 
   const expected = ["6"];
-  expect(result.logs).toEqual(expected);
+  expect(result.output).toEqual(expected);
 });
