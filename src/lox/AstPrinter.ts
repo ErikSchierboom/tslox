@@ -61,6 +61,7 @@ export class AstPrinter implements ExprVisitor<string> {
   }
 
   visitLiteralExpr(expr: LiteralExpr): string {
+    if (expr.value === undefined) return "";
     if (expr.value === null) return "nil";
     return expr.value.toString();
   }

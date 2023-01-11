@@ -39,7 +39,6 @@ export class Scanner {
       type: "EOF",
       lexeme: "",
       literal: undefined,
-      line: this.line,
       span: this.span(),
     });
     return [this.tokens, this.errors];
@@ -189,7 +188,6 @@ export class Scanner {
       type,
       lexeme,
       literal,
-      line: this.line,
       span: this.span(),
     });
   }
@@ -211,11 +209,12 @@ export class Scanner {
   }
 
   private error(message: string): void {
-    this.errors.push(new ParseError(this.line, message));
+    this.errors.push(new ParseError(this.span(), message));
   }
 
   private span(): Span {
     return {
+      line: this.line,
       start: this.start,
       end: this.current,
     };

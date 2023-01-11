@@ -1,11 +1,11 @@
 import { Runner } from "../../src/lox/Runner";
 
 test("tokenizer error", () => {
-  const source = "print 1 + @;";
+  const source = "print @ + 7;";
 
   const result = Runner.run(source);
 
-  const expected = ["[line 1] Unexpected character '@'."];
+  const expected = ["[line 1, col 6] Unexpected character '@'."];
   expect(result.parseErrors.map((error) => error.message)).toEqual(expected);
 });
 
@@ -14,7 +14,7 @@ test("parser error", () => {
 
   const result = Runner.run(source);
 
-  const expected = ["[line 1] Error at end: Expect ';' after value."];
+  const expected = ["[line 1, col 10] Error at end: Expect ';' after value."];
   expect(result.parseErrors.map((error) => error.message)).toEqual(expected);
 });
 
@@ -24,7 +24,7 @@ test("resolver error", () => {
   const result = Runner.run(source);
 
   const expected = [
-    "[line 1] Error at 'return': Can't return from top-level code.",
+    "[line 1, col 0] Error at 'return': Can't return from top-level code.",
   ];
   expect(result.parseErrors.map((error) => error.message)).toEqual(expected);
 });

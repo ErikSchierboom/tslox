@@ -1,8 +1,8 @@
-import { Token } from "./Tokens";
+import { Span, Token } from "./Tokens";
 
 export class ParseError extends Error {
-  constructor(public line: number, message: string) {
-    super(`[line ${line}] ${message}`);
+  constructor(public span: Span, message: string) {
+    super(`[line ${span.line}, col ${span.start}] ${message}`);
   }
 
   static atToken(token: Token, message: string): ParseError {
@@ -10,6 +10,6 @@ export class ParseError extends Error {
       token.type == "EOF"
         ? `Error at end: ${message}`
         : `Error at '${token.lexeme}': ${message}`;
-    return new ParseError(token.line, expandedMessage);
+    return new ParseError(token.span, expandedMessage);
   }
 }
