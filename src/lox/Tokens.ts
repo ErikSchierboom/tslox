@@ -44,17 +44,17 @@ export type TokenType =
   // Special
   | "EOF";
 
-export type Literal = number | boolean | string | null;
+export type Literal = number | boolean | string | null | undefined;
 
-export class Token {
-  constructor(
-    readonly type: TokenType,
-    readonly lexeme: string,
-    readonly literal: Literal,
-    readonly line: number
-  ) {}
+export type Span = {
+  start: number;
+  end: number;
+};
 
-  toString(): string {
-    return `${this.type} ${this.lexeme} ${this.literal}`;
-  }
-}
+export type Token = {
+  readonly type: TokenType;
+  readonly lexeme: string;
+  readonly literal: Literal;
+  readonly line: number;
+  readonly span: Span;
+};

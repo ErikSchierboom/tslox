@@ -1,5 +1,5 @@
 import { ParseError } from "./ParseError";
-import { Literal, Token, TokenType } from "./Tokens";
+import { Literal, Span, Token, TokenType } from "./Tokens";
 
 export class Scanner {
   static keywords: { [key: string]: TokenType } = {
@@ -35,7 +35,13 @@ export class Scanner {
       this.scanToken();
     }
 
-    this.tokens.push(new Token("EOF", "", null, this.line));
+    this.tokens.push({
+      type: "EOF",
+      lexeme: "",
+      literal: undefined,
+      line: this.line,
+      span: this.span(),
+    });
     return [this.tokens, this.errors];
   }
 
@@ -178,8 +184,14 @@ export class Scanner {
   }
 
   private addToken(type: TokenType, literal: Literal = null): void {
-    const text = this.source.substring(this.start, this.current);
-    this.tokens.push(new Token(type, text, literal, this.line));
+    const lexeme = this.source.substring(this.start, this.current);
+    this.tokens.push({
+      type,
+      lexeme,
+      literal,
+      line: this.line,
+      span: this.span(),
+    });
   }
 
   private isAtEnd(): boolean {
@@ -200,5 +212,12 @@ export class Scanner {
 
   private error(message: string): void {
     this.errors.push(new ParseError(this.line, message));
+  }
+
+  private span(): Span {
+    return {
+      start: this.start,
+      end: this.current,
+    };
   }
 }

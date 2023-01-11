@@ -29,7 +29,7 @@ export function App() {
             Tokens:
             <ol>
               {run.tokens.map((token, i) => (
-                <li key={i}>{token.toString()}</li>
+                <li key={i}>{JSON.stringify(token)}</li>
               ))}
             </ol>
           </div>
