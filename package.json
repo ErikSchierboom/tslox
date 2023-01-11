@@ -14,7 +14,7 @@
   },
   "targets": {
     "website": {
-      "source": "src/website/index.html",
+      "source": "src/frontend/index.html",
       "context": "browser"
     },
     "compiler": {
