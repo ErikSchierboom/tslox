@@ -48,16 +48,8 @@ export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
   }
 
   interpret(statements: Stmt[]): void {
-    try {
-      for (const statement of statements) {
-        this.execute(statement);
-      }
-    } catch (error) {
-      if (error instanceof RuntimeError) {
-        Runner.runtimeError(error);
-      } else {
-        throw error;
-      }
+    for (const statement of statements) {
+      this.execute(statement);
     }
   }
 

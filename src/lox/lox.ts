@@ -8,7 +8,7 @@ function runFile(path: string): void {
   Runner.run(source);
 
   if (Runner.hadError) exit(65);
-  if (Runner.hadRuntimeError) exit(70);
+  if (Runner.runtimeErrors.length > 0) exit(70);
 }
 
 function runPrompt(): void {

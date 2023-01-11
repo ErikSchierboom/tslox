@@ -11,12 +11,6 @@ export class Runner {
   static runtimeErrors: RuntimeError[] = [];
 
   static hadError = false;
-  static hadRuntimeError = false;
-
-  static runtimeError(error: RuntimeError) {
-    this.runtimeErrors.push(error);
-    this.hadRuntimeError = true;
-  }
 
   static error(context: number | Token, message: string): void {
     if (context instanceof Token) {
@@ -49,6 +43,11 @@ export class Runner {
 
     if (this.hadError) return;
 
-    this.interpreter.interpret(statements);
+    try {
+      this.interpreter.interpret(statements);
+    } catch (error) {
+      if (error instanceof RuntimeError) this.runtimeErrors.push(error);
+      else throw error;
+    }
   }
 }
