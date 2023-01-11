@@ -1,14 +1,24 @@
 import { exit, stdin, stdout } from "node:process";
 import { readFileSync } from "node:fs";
 import * as readline from "node:readline/promises";
-import { Runner } from "./Runner";
+import { Run, Runner } from "./Runner";
+
+function runSource(source: string): Run {
+  const run = Runner.run(source);
+
+  run.parseErrors.forEach((error) => console.error(error.message));
+  run.runtimeErrors.forEach((error) => console.error(error.message));
+  run.output.forEach((output) => console.log(output));
+
+  return run;
+}
 
 function runFile(path: string): void {
   const source = readFileSync(path, { encoding: "utf-8" });
-  Runner.run(source);
+  const run = runSource(source);
 
-  if (Runner.parseErrors.length > 0) exit(65);
-  if (Runner.runtimeErrors.length > 0) exit(70);
+  if (run.parseErrors.length > 0) exit(65);
+  if (run.runtimeErrors.length > 0) exit(70);
 }
 
 function runPrompt(): void {
@@ -20,7 +30,7 @@ function runPrompt(): void {
   rl.prompt();
 
   rl.on("line", (line) => {
-    Runner.run(line);
+    runSource(line);
     rl.prompt();
   }).on("close", () => process.exit());
 }
