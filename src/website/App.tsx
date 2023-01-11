@@ -37,7 +37,7 @@ export function App() {
             Statements:
             <ol>
               {run.statements.map((statement, i) => (
-                <li key={i}>{statement.toString()}</li>
+                <li key={i}>{JSON.stringify(statement)}</li>
               ))}
             </ol>
           </div>
