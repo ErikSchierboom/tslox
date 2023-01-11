@@ -42,6 +42,14 @@ export function App() {
             </ol>
           </div>
           <div>
+            Output:
+            <ol>
+              {run.output.map((output, i) => (
+                <li key={i}>{output}</li>
+              ))}
+            </ol>
+          </div>
+          <div>
             Parse errors:
             <ol>
               {run.parseErrors.map((error, i) => (
