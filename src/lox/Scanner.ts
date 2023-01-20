@@ -40,7 +40,7 @@ export class Scanner {
     return tokens;
   }
 
-  private scanToken(): Token {
+  scanToken(): Token {
     this.skipWhitespace();
     this.start = this.current;
 
@@ -53,7 +53,7 @@ export class Scanner {
 
     switch (c) {
       case "(":
-        return this.makeToken("LEFT_PAREN");
+        return this.makeToken("TOKEN_LEFT_PAREN");
       case ")":
         return this.makeToken("RIGHT_PAREN");
       case "{":

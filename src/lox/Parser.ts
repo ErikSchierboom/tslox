@@ -1,463 +1,253 @@
-import {
-  AssignExpr,
-  BinaryExpr,
-  CallExpr,
-  Expr,
-  GetExpr,
-  GroupingExpr,
-  LiteralExpr,
-  LogicalExpr,
-  SetExpr,
-  SuperExpr,
-  ThisExpr,
-  UnaryExpr,
-  VariableExpr,
-} from "./Expr";
-import { ParseError } from "./ParseError";
-import {
-  BlockStmt,
-  ClassStmt,
-  ExpressionStmt,
-  FunctionStmt,
-  IfStmt,
-  PrintStmt,
-  ReturnStmt,
-  Stmt,
-  VarStmt,
-  WhileStmt,
-} from "./Stmt";
-import { Token, TokenType } from "./Tokens";
+import { Token } from "./Tokens";
 
-export type ParseResult = Readonly<{
-  statements: Stmt[];
-  errors: ParseError[];
-}>;
+export type Precedence =
+  | "PREC_NONE"
+  | "PREC_ASSIGNMENT" // =
+  | "PREC_OR"         // or
+  | "PREC_AND"        // and
+  | "PREC_EQUALITY"   // == !=
+  | "PREC_COMPARISON" // < > <= >=
+  | "PREC_TERM"       // + -
+  | "PREC_FACTOR"     // * /
+  | "PREC_UNARY"      // ! -
+  | "PREC_CALL"       // . ()
+  | "PREC_PRIMARY";
 
 export class Parser {
-  private current = 0;
-  private readonly errors: ParseError[] = [];
+  private current!: Token;
+  private previous!: Token;
+  private hadError: boolean = false;
+  private panicMode: boolean = false;
+}
 
-  constructor(private readonly tokens: Token[]) {}
+export type ParseFn = () => {};
 
-  parse(): ParseResult {
-    const statements: Stmt[] = [];
+export type ParseRule = {
+  prefix: ParseFn;
+  infix : ParseFn;
+  precedence: Precedence;
+}
 
-    while (!this.isAtEnd()) {
-      const declaration = this.declaration();
-      if (declaration !== null) {
-        statements.push(declaration);
-      }
-    }
+static void errorAt(Token *token, const char *message) {
+  if (parser.panicMode) return;
+  parser.panicMode = true;
 
-    return { statements, errors: this.errors };
+  fprintf(stderr, "[line %d] Error", token->line);
+
+  if (token->type == TOKEN_EOF) {
+    fprintf(stderr, " at end");
+  } else if (token->type == TOKEN_ERROR) {
+    // Nothing
+  } else {
+    fprintf(stderr, " at '%.*s'", token->length, token->start);
   }
 
-  private declaration(): Stmt | null {
-    try {
-      if (this.match("CLASS")) return this.classDeclaration();
-      if (this.match("FUN")) return this.function("function");
-      if (this.match("VAR")) return this.varDeclaration();
-      return this.statement();
-    } catch (error) {
-      if (error instanceof ParseError) {
-        this.synchronize();
-        return null;
-      }
+  fprintf(stderr, ": %s\n", message);
+  parser.hadError = true;
+}
 
-      throw error;
-    }
+static void errorAtCurrent(const char *message) {
+  errorAt(&parser.current, message);
+}
+
+static void error(const char* message) {
+  errorAt(&parser.previous, message);
+}
+
+static void advance() {
+  parser.previous = parser.current;
+
+  for (;;) {
+    parser.current = scanToken();
+    if (parser.current.type != TOKEN_ERROR) break;
+
+    errorAtCurrent(parser.current.start);
+  }
+}
+
+static void consume(TokenType type, const char *message) {
+  if (parser.current.type == type) {
+    advance();
+    return;
   }
 
-  private classDeclaration(): Stmt {
-    const name = this.consume("IDENTIFIER", "Expect class name");
+  errorAtCurrent(message);
+}
 
-    let superclass: VariableExpr | null = null;
-    if (this.match("LESS")) {
-      this.consume("IDENTIFIER", "Expect superclass name");
-      superclass = new VariableExpr(this.previous());
-    }
+static void emitByte(uint8_t byte) {
+  writeChunk(currentChunk(), byte, parser.previous.line);
+}
 
-    this.consume("LEFT_BRACE", "Expect '{' before class body.");
-    const methods: FunctionStmt[] = [];
+static void emitBytes(uint8_t byte1, uint8_t byte2) {
+  emitByte(byte1);
+  emitByte(byte2);
+}
 
-    while (!this.check("RIGHT_BRACE") && !this.isAtEnd()) {
-      methods.push(this.function("method"));
-    }
+static void emitReturn() {
+  emitByte(OP_RETURN);
+}
 
-    this.consume("RIGHT_BRACE", "Expect '}' after class body.");
-    return new ClassStmt(name, superclass, methods);
+static uint8_t makeConstant(Value value) {
+  int constant = addConstant(currentChunk(), value);
+  if (constant > UINT8_MAX) {
+    error("Too many constants in one chunk");
+    return 0;
   }
 
-  private function(kind: string): FunctionStmt {
-    const name = this.consume("IDENTIFIER", `Expect ${kind} name.`);
-    this.consume("LEFT_PAREN", `Expect '(' after ${kind} name.`);
-    const parameters: Token[] = [];
-    if (!this.check("RIGHT_PAREN")) {
-      do {
-        if (parameters.length >= 255) {
-          this.error(this.peek(), "Can't have more than 255 parameters");
-        }
-        parameters.push(this.consume("IDENTIFIER", "Expect parameter name"));
-      } while (this.match("COMMA"));
-    }
-    this.consume("RIGHT_PAREN", "Expect ')' after parameters");
-    this.consume("LEFT_BRACE", `Expect '{' before ${kind} body.`);
-    const body = this.block();
-    return new FunctionStmt(name, parameters, body);
+  return (uint8_t)constant;
+}
+
+static void emitConstant(Value value) {
+  emitBytes(OP_CONSTANT, makeConstant(value));
+}
+
+static void endCompiler() {
+  emitReturn();
+#ifdef DEBUG_PRINT_CODE
+  if (!parser.hadError) {
+    disassembleChunk(currentChunk(), "code");
+  }
+#endif
+}
+
+static void expression();
+static ParseRule* getRule(TokenType type);
+static void parsePrecedence(Precedence precedence);
+
+static void binary() {
+  TokenType operatorType = parser.previous.type;
+  ParseRule* rule = getRule(operatorType);
+  parsePrecedence((Precedence)(rule->precedence + 1));
+
+  switch (operatorType) {
+    case TOKEN_BANG_EQUAL:  emitBytes(OP_EQUAL, OP_NOT); break;
+    case TOKEN_EQUAL_EQUAL:  emitByte(OP_EQUAL); break;
+    case TOKEN_GREATER:  emitByte(OP_GREATER); break;
+    case TOKEN_GREATER_EQUAL:  emitBytes(OP_LESS, OP_NOT); break;
+    case TOKEN_LESS:  emitByte(OP_LESS); break;
+    case TOKEN_LESS_EQUAL:  emitBytes(OP_GREATER, OP_NOT); break;
+    case TOKEN_PLUS:  emitByte(OP_ADD); break;
+    case TOKEN_MINUS: emitByte(OP_SUBTRACT); break;
+    case TOKEN_STAR:  emitByte(OP_MULTIPLY); break;
+    case TOKEN_SLASH: emitByte(OP_DIVIDE); break;
+    default: return;
+  }
+}
+
+static void literal() {
+  switch (parser.previous.type) {
+    case TOKEN_FALSE: emitByte(OP_FALSE); break;
+    case TOKEN_NIL: emitByte(OP_NIL); break;
+    case TOKEN_TRUE: emitByte(OP_TRUE); break;
+    default: return;
+  }
+}
+
+static void expression() {
+  parsePrecedence(PREC_ASSIGNMENT);
+}
+
+static void grouping() {
+  expression();
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
+}
+
+static void number() {
+  double value = strtod(parser.previous.start, NULL);
+  emitConstant(NUMBER_VAL(value));
+}
+
+static void string() {
+  emitConstant(OBJ_VAL(copyString(parser.previous.start + 1, parser.previous.length - 2)));
+}
+
+static void unary() {
+  TokenType operatorType = parser.previous.type;
+
+  // Compile the operand
+  parsePrecedence(PREC_UNARY);
+
+  switch (operatorType) {
+    case TOKEN_BANG: emitByte(OP_NOT); break;
+    case TOKEN_MINUS: emitByte(OP_NEGATE); break;
+    default: return;
+  }
+}
+
+ParseRule rules[] = {
+  [TOKEN_LEFT_PAREN]    = {grouping, NULL,   PREC_NONE},
+  [TOKEN_RIGHT_PAREN]   = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_LEFT_BRACE]    = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_RIGHT_BRACE]   = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_COMMA]         = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_DOT]           = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_MINUS]         = {unary,    binary, PREC_TERM},
+  [TOKEN_PLUS]          = {NULL,     binary, PREC_TERM},
+  [TOKEN_SEMICOLON]     = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_SLASH]         = {NULL,     binary, PREC_FACTOR},
+  [TOKEN_STAR]          = {NULL,     binary, PREC_FACTOR},
+  [TOKEN_BANG]          = {unary,    NULL,   PREC_NONE},
+  [TOKEN_BANG_EQUAL]    = {NULL,     binary, PREC_EQUALITY},
+  [TOKEN_EQUAL]         = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_EQUAL_EQUAL]   = {NULL,     binary, PREC_EQUALITY},
+  [TOKEN_GREATER]       = {NULL,     binary, PREC_COMPARISON},
+  [TOKEN_GREATER_EQUAL] = {NULL,     binary, PREC_COMPARISON},
+  [TOKEN_LESS]          = {NULL,     binary, PREC_COMPARISON},
+  [TOKEN_LESS_EQUAL]    = {NULL,     binary, PREC_COMPARISON},
+  [TOKEN_IDENTIFIER]    = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_STRING]        = {string,   NULL,   PREC_NONE},
+  [TOKEN_NUMBER]        = {number,   NULL,   PREC_NONE},
+  [TOKEN_AND]           = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_CLASS]         = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_ELSE]          = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_FALSE]         = {literal,  NULL,   PREC_NONE},
+  [TOKEN_FOR]           = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_FUN]           = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_IF]            = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_NIL]           = {literal,  NULL,   PREC_NONE},
+  [TOKEN_OR]            = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_PRINT]         = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_RETURN]        = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_SUPER]         = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_THIS]          = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_TRUE]          = {literal,  NULL,   PREC_NONE},
+  [TOKEN_VAR]           = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_WHILE]         = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_ERROR]         = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_EOF]           = {NULL,     NULL,   PREC_NONE},
+};
+
+static void parsePrecedence(Precedence precedence) {
+  advance();
+  ParseFn prefixRule = getRule(parser.previous.type)->prefix;
+  if (prefixRule == NULL) {
+    error("Expect expression.");
+    return;
   }
 
-  private varDeclaration(): Stmt {
-    const name = this.consume("IDENTIFIER", "Expect variable name.");
-    const initializer = this.match("EQUAL") ? this.expression() : null;
+  prefixRule();
 
-    this.consume("SEMICOLON", "Expect ';' after variable declaration.");
-    return new VarStmt(name, initializer);
+  while (precedence <= getRule(parser.current.type)->precedence) {
+    advance();
+    ParseFn infixRule = getRule(parser.previous.type)->infix;
+    infixRule();
   }
-
-  private statement(): Stmt {
-    if (this.match("FOR")) return this.forStatement();
-    if (this.match("IF")) return this.ifStatement();
-    if (this.match("PRINT")) return this.printStatement();
-    if (this.match("RETURN")) return this.returnStatement();
-    if (this.match("WHILE")) return this.whileStatement();
-    if (this.match("LEFT_BRACE")) return new BlockStmt(this.block());
-
-    return this.expressionStatement();
-  }
-
-  private returnStatement(): Stmt {
-    const keyword = this.previous();
-    const value = this.check("SEMICOLON") ? null : this.expression();
-    this.consume("SEMICOLON", "Expect ';' after return value.");
-    return new ReturnStmt(keyword, value);
-  }
-
-  private forStatement(): Stmt {
-    this.consume("LEFT_PAREN", "Expect '(' after 'for'.");
-
-    let initializer: Stmt | null;
-    if (this.match("SEMICOLON")) {
-      initializer = null;
-    } else if (this.match("VAR")) {
-      initializer = this.varDeclaration();
-    } else {
-      initializer = this.expressionStatement();
-    }
-
-    let condition: Expr | null = null;
-    if (!this.check("SEMICOLON")) {
-      condition = this.expression();
-    }
-    this.consume("SEMICOLON", "Expect ';' after 'for' loop condition.");
-
-    let increment: Expr | null = null;
-    if (!this.check("RIGHT_PAREN")) {
-      increment = this.expression();
-    }
-    this.consume("RIGHT_PAREN", "Expect ')' after 'for' clauses.");
-
-    let body = this.statement();
-
-    if (increment != null) {
-      body = new BlockStmt([body, new ExpressionStmt(increment)]);
-    }
-
-    if (condition == null) condition = new LiteralExpr(true);
-    body = new WhileStmt(condition, body);
-
-    if (initializer != null) {
-      body = new BlockStmt([initializer, body]);
-    }
-
-    return body;
-  }
-
-  private whileStatement(): Stmt {
-    this.consume("LEFT_BRACE", "Expect '(' after while.");
-    const condition = this.expression();
-    this.consume("RIGHT_BRACE", "Expect ')' after while condition.");
-
-    const body = this.statement();
-    return new WhileStmt(condition, body);
-  }
-
-  private ifStatement(): Stmt {
-    this.consume("LEFT_PAREN", "Expect '(' after 'if'.");
-    const condition = this.expression();
-    this.consume("RIGHT_PAREN", "Expect ')' after if condition.");
-
-    const thenBranch = this.statement();
-    const elseBranch = this.match("ELSE") ? this.statement() : null;
-
-    return new IfStmt(condition, thenBranch, elseBranch);
-  }
-
-  private block(): Stmt[] {
-    const statements: Stmt[] = [];
-
-    while (!this.check("RIGHT_BRACE") && !this.isAtEnd()) {
-      const stmt = this.declaration();
-      if (stmt !== null) {
-        statements.push(stmt);
-      }
-    }
-
-    this.consume("RIGHT_BRACE", "Expect '}' after block.");
-    return statements;
-  }
-
-  private printStatement(): Stmt {
-    const value = this.expression();
-    this.consume("SEMICOLON", "Expect ';' after value.");
-    return new PrintStmt(value);
-  }
-
-  private expressionStatement(): Stmt {
-    const expr = this.expression();
-    this.consume("SEMICOLON", "Expect ';' after expression.");
-    return new ExpressionStmt(expr);
-  }
-
-  private expression(): Expr {
-    return this.assignment();
-  }
-
-  private assignment(): Expr {
-    const expr = this.or();
-
-    if (this.match("EQUAL")) {
-      const equals = this.previous();
-      const value = this.assignment();
-
-      if (expr instanceof VariableExpr) {
-        const name = expr.name;
-        return new AssignExpr(name, value);
-      } else if (expr instanceof GetExpr) {
-        return new SetExpr(expr.obj, expr.name, value);
-      }
-
-      this.error(equals, "Invalid assignment target.");
-    }
-
-    return expr;
-  }
-
-  private or(): Expr {
-    let expr = this.and();
-
-    while (this.match("OR")) {
-      const operator = this.previous();
-      const right = this.and();
-      expr = new LogicalExpr(expr, operator, right);
-    }
-
-    return expr;
-  }
-
-  private and(): Expr {
-    let expr = this.equality();
-
-    while (this.match("AND")) {
-      const operator = this.previous();
-      const right = this.equality();
-      expr = new LogicalExpr(expr, operator, right);
-    }
-
-    return expr;
-  }
-
-  private equality(): Expr {
-    let expr = this.comparison();
-
-    while (this.match("BANG_EQUAL", "EQUAL_EQUAL")) {
-      const operator = this.previous();
-      const right = this.comparison();
-      expr = new BinaryExpr(expr, operator, right);
-    }
-
-    return expr;
-  }
-
-  private comparison(): Expr {
-    let expr = this.term();
-
-    while (this.match("GREATER", "GREATER_EQUAL", "LESS", "LESS_EQUAL")) {
-      const operator = this.previous();
-      const right = this.term();
-      expr = new BinaryExpr(expr, operator, right);
-    }
-
-    return expr;
-  }
-
-  private term(): Expr {
-    let expr = this.factor();
-
-    while (this.match("MINUS", "PLUS")) {
-      const operator = this.previous();
-      const right = this.factor();
-      expr = new BinaryExpr(expr, operator, right);
-    }
-
-    return expr;
-  }
-
-  private factor(): Expr {
-    let expr = this.unary();
-
-    while (this.match("SLASH", "STAR")) {
-      const operator = this.previous();
-      const right = this.unary();
-      expr = new BinaryExpr(expr, operator, right);
-    }
-
-    return expr;
-  }
-
-  private unary(): Expr {
-    if (this.match("BANG", "MINUS")) {
-      const operator = this.previous();
-      const right = this.unary();
-      return new UnaryExpr(operator, right);
-    }
-
-    return this.call();
-  }
-
-  private call(): Expr {
-    let expr = this.primary();
-
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      if (this.match("LEFT_PAREN")) {
-        expr = this.finishCall(expr);
-      } else if (this.match("DOT")) {
-        const name = this.consume(
-          "IDENTIFIER",
-          "Expect property name after '.'."
-        );
-        expr = new GetExpr(expr, name);
-      } else {
-        break;
-      }
-    }
-
-    return expr;
-  }
-
-  private finishCall(callee: Expr): Expr {
-    const args: Expr[] = [];
-
-    if (!this.check("RIGHT_PAREN")) {
-      do {
-        if (args.length >= 255) {
-          this.error(this.peek(), "Can't have more than 255 arguments.");
-        }
-        args.push(this.expression());
-      } while (this.match("COMMA"));
-    }
-
-    const paren = this.consume("RIGHT_PAREN", "Expect ')' after arguments.");
-    return new CallExpr(callee, paren, args);
-  }
-
-  private primary(): Expr {
-    if (this.match("FALSE")) return new LiteralExpr(false);
-    if (this.match("TRUE")) return new LiteralExpr(true);
-    if (this.match("NIL")) return new LiteralExpr(null);
-
-    if (this.match("NUMBER", "STRING")) {
-      return new LiteralExpr(this.previous().literal);
-    }
-
-    if (this.match("SUPER")) {
-      const keyword = this.previous();
-      this.consume("DOT", "Expect '.' after 'super'.");
-      const method = this.consume(
-        "IDENTIFIER",
-        "Expect superclass method name"
-      );
-      return new SuperExpr(keyword, method);
-    }
-
-    if (this.match("THIS")) return new ThisExpr(this.previous());
-
-    if (this.match("IDENTIFIER")) {
-      return new VariableExpr(this.previous());
-    }
-
-    if (this.match("LEFT_PAREN")) {
-      const expr = this.expression();
-      this.consume("RIGHT_PAREN", "Expect ')' after expression.");
-      return new GroupingExpr(expr);
-    }
-
-    throw this.error(this.peek(), "Expect expression.");
-  }
-
-  private consume(type: TokenType, message: string): Token {
-    if (this.check(type)) return this.advance();
-
-    throw this.error(this.peek(), message);
-  }
-
-  private error(token: Token, message: string): ParseError {
-    const error = ParseError.atToken(token, message);
-    this.errors.push(error);
-    return error;
-  }
-
-  private match(...types: TokenType[]): boolean {
-    for (const type of types) {
-      if (this.check(type)) {
-        this.advance();
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private advance(): Token {
-    if (!this.isAtEnd()) this.current++;
-    return this.previous();
-  }
-
-  private check(type: TokenType): boolean {
-    if (this.isAtEnd()) return false;
-    return this.peek().type == type;
-  }
-
-  private isAtEnd(): boolean {
-    return this.peek().type == "EOF";
-  }
-
-  private peek(): Token {
-    return this.tokens[this.current];
-  }
-
-  private previous(): Token {
-    return this.tokens[this.current - 1];
-  }
-
-  private synchronize(): void {
-    this.advance();
-    while (!this.isAtEnd()) {
-      if (this.previous().type == "SEMICOLON") return;
-
-      switch (this.peek().type) {
-        case "CLASS":
-        case "FOR":
-        case "FUN":
-        case "IF":
-        case "PRINT":
-        case "RETURN":
-        case "VAR":
-        case "WHILE":
-          return;
-      }
-
-      this.advance();
-    }
-  }
+}
+
+static ParseRule* getRule(TokenType type) {
+  return &rules[type];
+}
+
+bool compile(const char* source, Chunk* chunk) {
+  initScanner(source);
+  compilingChunk = chunk;
+
+  parser.hadError = false;
+  parser.panicMode = false;
+
+  advance();
+  expression();
+  consume(TOKEN_EOF, "Expect end of expression");
+  endCompiler();
+  return !parser.hadError;
 }
