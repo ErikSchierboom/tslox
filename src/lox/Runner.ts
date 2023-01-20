@@ -27,7 +27,11 @@ export class Runner {
     this.runtimeErrors = [];
 
     const scanner = new Scanner(source);
-    const { tokens, errors: scanErrors } = scanner.scanTokens();
+    const tokens = scanner.scanTokens();
+
+    const scanErrors = tokens
+      .filter((token) => token.type == "ERROR")
+      .map((token) => new ParseError(token.span, token.literal!.toString()));
 
     this.parseErrors.push(...scanErrors);
     if (this.parseErrors.length > 0) return this.createRun(tokens);

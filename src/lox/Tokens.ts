@@ -42,6 +42,7 @@ export type TokenType =
   | "VAR"
   | "WHILE"
   // Special
+  | "ERROR"
   | "EOF";
 
 export type Literal = number | boolean | string | null | undefined;
