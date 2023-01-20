@@ -14,7 +14,7 @@ test("parser error", () => {
 
   const result = Runner.run(source);
 
-  const expected = ["[line 1, col 10] Error at end: Expect ';' after value."];
+  const expected = ["[line 1, col 11] Error at end: Expect ';' after value."];
   expect(result.parseErrors.map((error) => error.message)).toEqual(expected);
 });
 

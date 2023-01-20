@@ -20,104 +20,103 @@ export class Scanner {
     while: "WHILE",
   };
 
-  private readonly tokens: Token[] = [];
   private start = 0;
   private current = 0;
   private line = 1;
 
   constructor(private readonly source: string) {}
 
+  // TODO: consider generator function
   scanTokens(): Token[] {
-    while (!this.isAtEnd()) {
-      this.start = this.current;
-      this.scanToken();
+    const tokens: Token[] = [];
+
+    while (true) {
+      const token = this.scanToken();
+      tokens.push(token);
+
+      if (token.type == "EOF") break;
     }
 
-    this.tokens.push({
-      type: "EOF",
-      lexeme: "",
-      literal: undefined,
-      span: this.span(),
-    });
-    return this.tokens;
+    return tokens;
   }
 
-  private scanToken(): void {
+  skipWhitespace(): void {
+    while (true) {
+      const c = this.peek();
+
+      switch (c) {
+        case " ":
+        case "\r":
+        case "\t":
+          this.advance();
+          break;
+        case "\n":
+          this.line++;
+          this.advance();
+          break;
+        case "/":
+          if (this.peekNext() == "/") {
+            while (this.peek() != "\n" && !this.isAtEnd()) this.advance();
+          } else {
+            return;
+          }
+          break;
+        default:
+          return;
+      }
+    }
+  }
+
+  private scanToken(): Token {
+    this.skipWhitespace();
+    this.start = this.current;
+
+    if (this.isAtEnd()) return this.makeToken("EOF");
+
     const c = this.advance();
+
+    if (this.isAlpha(c)) return this.identifier();
+    if (this.isDigit(c)) return this.number();
+
     switch (c) {
       case "(":
-        this.addToken("LEFT_PAREN");
-        break;
+        return this.makeToken("LEFT_PAREN");
       case ")":
-        this.addToken("RIGHT_PAREN");
-        break;
+        return this.makeToken("RIGHT_PAREN");
       case "{":
-        this.addToken("LEFT_BRACE");
-        break;
+        return this.makeToken("LEFT_BRACE");
       case "}":
-        this.addToken("RIGHT_BRACE");
-        break;
-      case ",":
-        this.addToken("COMMA");
-        break;
-      case ".":
-        this.addToken("DOT");
-        break;
-      case "-":
-        this.addToken("MINUS");
-        break;
-      case "+":
-        this.addToken("PLUS");
-        break;
+        return this.makeToken("RIGHT_BRACE");
       case ";":
-        this.addToken("SEMICOLON");
-        break;
-      case "*":
-        this.addToken("STAR");
-        break;
-      case "!":
-        this.addToken(this.match("=") ? "BANG_EQUAL" : "BANG");
-        break;
-      case "=":
-        this.addToken(this.match("=") ? "EQUAL_EQUAL" : "EQUAL");
-        break;
-      case "<":
-        this.addToken(this.match("=") ? "LESS_EQUAL" : "LESS");
-        break;
-      case ">":
-        this.addToken(this.match("=") ? "GREATER_EQUAL" : "GREATER");
-        break;
+        return this.makeToken("SEMICOLON");
+      case ",":
+        return this.makeToken("COMMA");
+      case ".":
+        return this.makeToken("DOT");
+      case "-":
+        return this.makeToken("MINUS");
+      case "+":
+        return this.makeToken("PLUS");
       case "/":
-        if (this.match("/")) {
-          while (this.peek() != "\n" && !this.isAtEnd()) this.advance();
-        } else {
-          this.addToken("SLASH");
-        }
-        break;
-      case " ":
-      case "\r":
-      case "\t":
-        break;
-      case "\n":
-        this.line++;
-        break;
+        return this.makeToken("SLASH");
+      case "*":
+        return this.makeToken("STAR");
+      case "!":
+        return this.makeToken(this.match("=") ? "BANG_EQUAL" : "BANG");
+      case "=":
+        return this.makeToken(this.match("=") ? "EQUAL_EQUAL" : "EQUAL");
+      case "<":
+        return this.makeToken(this.match("=") ? "LESS_EQUAL" : "LESS");
+      case ">":
+        return this.makeToken(this.match("=") ? "GREATER_EQUAL" : "GREATER");
       case '"':
-        this.string();
-        break;
-      default:
-        if (this.isDigit(c)) {
-          this.number();
-        } else if (this.isAlpha(c)) {
-          this.identifier();
-        } else {
-          this.error(`Unexpected character '${c}'.`);
-        }
-
-        break;
+        return this.string();
     }
+
+    return this.errorToken(`Unexpected character '${c}'.`);
   }
 
-  private number(): void {
+  private number(): Token {
     while (this.isDigit(this.peek())) this.advance();
 
     if (this.peek() == "." && this.isDigit(this.peekNext())) {
@@ -126,7 +125,7 @@ export class Scanner {
       while (this.isDigit(this.peek())) this.advance();
     }
 
-    this.addToken(
+    return this.makeToken(
       "NUMBER",
       Number.parseFloat(this.source.substring(this.start, this.current))
     );
@@ -137,30 +136,29 @@ export class Scanner {
     return this.source.charAt(this.current + 1);
   }
 
-  private identifier(): void {
+  private identifier(): Token {
     while (this.isAlphaNumeric(this.peek())) this.advance();
 
     const text = this.source.substring(this.start, this.current);
     const type = Scanner.keywords[text] || "IDENTIFIER";
 
-    this.addToken(type);
+    return this.makeToken(type);
   }
 
-  private string(): void {
+  private string(): Token {
     while (this.peek() != '"' && !this.isAtEnd()) {
       if (this.peek() == "\n") this.line++;
       this.advance();
     }
 
     if (this.isAtEnd()) {
-      this.error("Unterminated string.");
-      return;
+      return this.errorToken("Unterminated string.");
     }
 
     this.advance();
 
     const value = this.source.substring(this.start + 1, this.current - 1);
-    this.addToken("STRING", value);
+    return this.makeToken("STRING", value);
   }
 
   private peek(): string {
@@ -180,14 +178,14 @@ export class Scanner {
     return this.source.charAt(this.current++);
   }
 
-  private addToken(type: TokenType, literal: Literal = null): void {
+  private makeToken(type: TokenType, literal: Literal = null): Token {
     const lexeme = this.source.substring(this.start, this.current);
-    this.tokens.push({
+    return {
       type,
       lexeme,
       literal,
       span: this.span(),
-    });
+    };
   }
 
   private isAtEnd(): boolean {
@@ -206,8 +204,8 @@ export class Scanner {
     return this.isAlpha(c) || this.isDigit(c);
   }
 
-  private error(message: string): void {
-    this.addToken("ERROR", message);
+  private errorToken(message: string): Token {
+    return this.makeToken("ERROR", message);
   }
 
   private span(): Span {
