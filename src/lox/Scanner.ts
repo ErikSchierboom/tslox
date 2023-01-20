@@ -40,33 +40,6 @@ export class Scanner {
     return tokens;
   }
 
-  skipWhitespace(): void {
-    while (true) {
-      const c = this.peek();
-
-      switch (c) {
-        case " ":
-        case "\r":
-        case "\t":
-          this.advance();
-          break;
-        case "\n":
-          this.line++;
-          this.advance();
-          break;
-        case "/":
-          if (this.peekNext() == "/") {
-            while (this.peek() != "\n" && !this.isAtEnd()) this.advance();
-          } else {
-            return;
-          }
-          break;
-        default:
-          return;
-      }
-    }
-  }
-
   private scanToken(): Token {
     this.skipWhitespace();
     this.start = this.current;
@@ -116,6 +89,33 @@ export class Scanner {
     return this.errorToken(`Unexpected character '${c}'.`);
   }
 
+  skipWhitespace(): void {
+    while (true) {
+      const c = this.peek();
+
+      switch (c) {
+        case " ":
+        case "\r":
+        case "\t":
+          this.advance();
+          break;
+        case "\n":
+          this.line++;
+          this.advance();
+          break;
+        case "/":
+          if (this.peekNext() == "/") {
+            while (this.peek() != "\n" && !this.isAtEnd()) this.advance();
+          } else {
+            return;
+          }
+          break;
+        default:
+          return;
+      }
+    }
+  }
+
   private number(): Token {
     while (this.isDigit(this.peek())) this.advance();
 
@@ -131,18 +131,61 @@ export class Scanner {
     );
   }
 
-  private peekNext(): string {
-    if (this.current + 1 >= this.source.length) return "\0";
-    return this.source.charAt(this.current + 1);
-  }
-
   private identifier(): Token {
     while (this.isAlphaNumeric(this.peek())) this.advance();
 
-    const text = this.source.substring(this.start, this.current);
-    const type = Scanner.keywords[text] || "IDENTIFIER";
+    return this.makeToken(this.identifierType());
+  }
 
-    return this.makeToken(type);
+  private identifierType(): TokenType {
+    switch (this.source[this.start]) {
+      case "a":
+        return this.checkKeyword(1, 2, "nd", "AND");
+      case "c":
+        return this.checkKeyword(1, 4, "lass", "CLASS");
+      case "e":
+        return this.checkKeyword(1, 3, "lse", "ELSE");
+      case "f":
+        if (this.current - this.start > 1) {
+          switch (this.source[this.start + 1]) {
+            case "a":
+              return this.checkKeyword(2, 3, "lse", "FALSE");
+            case "o":
+              return this.checkKeyword(2, 1, "r", "FOR");
+            case "u":
+              return this.checkKeyword(2, 1, "n", "FUN");
+          }
+        }
+        break;
+      case "i":
+        return this.checkKeyword(1, 1, "f", "IF");
+      case "n":
+        return this.checkKeyword(1, 2, "il", "NIL");
+      case "o":
+        return this.checkKeyword(1, 1, "r", "OR");
+      case "p":
+        return this.checkKeyword(1, 4, "rint", "PRINT");
+      case "r":
+        return this.checkKeyword(1, 5, "eturn", "RETURN");
+      case "s":
+        return this.checkKeyword(1, 4, "uper", "SUPER");
+      case "t":
+        if (this.current - this.start > 1) {
+          switch (this.source[this.start + 1]) {
+            case "h":
+              return this.checkKeyword(2, 2, "is", "THIS");
+            case "r":
+              return this.checkKeyword(2, 2, "ue", "TRUE");
+          }
+        }
+        break;
+      case "v":
+        return this.checkKeyword(1, 2, "ar", "VAR");
+      case "w":
+        return this.checkKeyword(1, 4, "hile", "WHILE");
+    }
+
+    return "IDENTIFIER";
   }
 
   private string(): Token {
@@ -151,9 +194,7 @@ export class Scanner {
       this.advance();
     }
 
-    if (this.isAtEnd()) {
-      return this.errorToken("Unterminated string.");
-    }
+    if (this.isAtEnd()) return this.errorToken("Unterminated string.");
 
     this.advance();
 
@@ -161,9 +202,43 @@ export class Scanner {
     return this.makeToken("STRING", value);
   }
 
-  private peek(): string {
-    if (this.isAtEnd()) return "\0";
-    return this.source.charAt(this.current);
+  private checkKeyword(
+    start: number,
+    length: number,
+    rest: string,
+    type: TokenType
+  ): TokenType {
+    if (
+      this.current - this.start == start + length &&
+      this.source.substring(this.start + start, this.start + start + length) ===
+        rest
+    ) {
+      return type;
+    }
+
+    return "IDENTIFIER";
+  }
+
+  private errorToken(message: string): Token {
+    return this.makeToken("ERROR", message);
+  }
+
+  private makeToken(type: TokenType, literal: Literal = null): Token {
+    const lexeme = this.source.substring(this.start, this.current);
+    return {
+      type,
+      lexeme,
+      literal,
+      span: this.span(),
+    };
+  }
+
+  private span(): Span {
+    return {
+      line: this.line,
+      start: this.start,
+      end: this.current,
+    };
   }
 
   private match(expected: string): boolean {
@@ -178,14 +253,14 @@ export class Scanner {
     return this.source.charAt(this.current++);
   }
 
-  private makeToken(type: TokenType, literal: Literal = null): Token {
-    const lexeme = this.source.substring(this.start, this.current);
-    return {
-      type,
-      lexeme,
-      literal,
-      span: this.span(),
-    };
+  private peek(): string {
+    if (this.isAtEnd()) return "\0";
+    return this.source.charAt(this.current);
+  }
+
+  private peekNext(): string {
+    if (this.current + 1 >= this.source.length) return "\0";
+    return this.source.charAt(this.current + 1);
   }
 
   private isAtEnd(): boolean {
@@ -202,17 +277,5 @@ export class Scanner {
 
   private isAlphaNumeric(c: string): boolean {
     return this.isAlpha(c) || this.isDigit(c);
-  }
-
-  private errorToken(message: string): Token {
-    return this.makeToken("ERROR", message);
-  }
-
-  private span(): Span {
-    return {
-      line: this.line,
-      start: this.start,
-      end: this.current,
-    };
   }
 }
