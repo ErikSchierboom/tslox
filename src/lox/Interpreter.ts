@@ -276,7 +276,7 @@ export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
   visitLogicalExpr(expr: LogicalExpr): unknown {
     const left = this.evaluate(expr.left);
 
-    if (expr.operator.type == "OR") {
+    if (expr.operator.type == "TOKEN_OR") {
       if (this.isTruthy(left)) {
         return left;
       }
@@ -294,39 +294,39 @@ export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
     const right = this.evaluate(expr.right);
 
     switch (expr.operator.type) {
-      case "GREATER":
+      case "TOKEN_GREATER":
         this.checkNumberOperand(expr.operator, left);
         this.checkNumberOperand(expr.operator, right);
         return left > right;
-      case "GREATER_EQUAL":
+      case "TOKEN_GREATER_EQUAL":
         this.checkNumberOperand(expr.operator, left);
         this.checkNumberOperand(expr.operator, right);
         return left >= right;
-      case "LESS":
+      case "TOKEN_LESS":
         this.checkNumberOperand(expr.operator, left);
         this.checkNumberOperand(expr.operator, right);
         return left < right;
-      case "LESS_EQUAL":
+      case "TOKEN_LESS_EQUAL":
         this.checkNumberOperand(expr.operator, left);
         this.checkNumberOperand(expr.operator, right);
         return left <= right;
-      case "BANG_EQUAL":
+      case "TOKEN_BANG_EQUAL":
         return !this.isEqual(left, right);
-      case "EQUAL_EQUAL":
+      case "TOKEN_EQUAL_EQUAL":
         return this.isEqual(left, right);
-      case "MINUS":
+      case "TOKEN_MINUS":
         this.checkNumberOperand(expr.operator, left);
         this.checkNumberOperand(expr.operator, right);
         return left - right;
-      case "SLASH":
+      case "TOKEN_SLASH":
         this.checkNumberOperand(expr.operator, left);
         this.checkNumberOperand(expr.operator, right);
         return left / right;
-      case "STAR":
+      case "TOKEN_STAR":
         this.checkNumberOperand(expr.operator, left);
         this.checkNumberOperand(expr.operator, right);
         return left * right;
-      case "PLUS":
+      case "TOKEN_PLUS":
         if (typeof left === "number" && typeof right === "number")
           return left + right;
 
@@ -354,9 +354,9 @@ export class Interpreter implements ExprVisitor<unknown>, StmtVisitor<void> {
     const right = this.evaluate(expr.right);
 
     switch (expr.operator.type) {
-      case "BANG":
+      case "TOKEN_BANG":
         return !this.isTruthy(right);
-      case "MINUS":
+      case "TOKEN_MINUS":
         this.checkNumberOperand(expr.operator, right);
         return -right;
     }

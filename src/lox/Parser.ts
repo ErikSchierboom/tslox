@@ -1,4 +1,6 @@
-import { Token } from "./Tokens";
+import { Expr, GroupingExpr, LiteralExpr, LogicalExpr } from "./Expr";
+import { ParseError } from "./ParseError";
+import { Token, TokenType } from "./Tokens";
 
 export type Precedence =
   | "PREC_NONE"
@@ -14,17 +16,130 @@ export type Precedence =
   | "PREC_PRIMARY";
 
 export class Parser {
+  private rules: { [type: TokenType]: ParseRule } = {
+    ["TOKEN_LEFT_PAREN"]    : this.makeRule(this.grouping, null,   "PREC_NONE"),
+    ["TOKEN_RIGHT_PAREN"]   : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_LEFT_BRACE"]    : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_RIGHT_BRACE"]   : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_COMMA"]         : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_DOT"]           : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_MINUS"]         : this.makeRule(this.unary,    this.binary, "PREC_TERM"),
+    ["TOKEN_PLUS"]          : this.makeRule(null,     this.binary, "PREC_TERM"),
+    ["TOKEN_SEMICOLON"]     : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_SLASH"]         : this.makeRule(null,     this.binary, "PREC_FACTOR"),
+    ["TOKEN_STAR"]          : this.makeRule(null,     this.binary, "PREC_FACTOR"),
+    ["TOKEN_BANG"]          : this.makeRule(this.unary,    null,   "PREC_NONE"),
+    ["TOKEN_BANG_EQUAL"]    : this.makeRule(null,     this.binary, "PREC_EQUALITY"),
+    ["TOKEN_EQUAL"]         : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_EQUAL_EQUAL"]   : this.makeRule(null,     this.binary, "PREC_EQUALITY"),
+    ["TOKEN_GREATER"]       : this.makeRule(null,     this.binary, "PREC_COMPARISON"),
+    ["TOKEN_GREATER_EQUAL"] : this.makeRule(null,     this.binary, "PREC_COMPARISON"),
+    ["TOKEN_LESS"]          : this.makeRule(null,     this.binary, "PREC_COMPARISON"),
+    ["TOKEN_LESS_EQUAL"]    : this.makeRule(null,     this.binary, "PREC_COMPARISON"),
+    ["TOKEN_IDENTIFIER"]    : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_STRING"]        : this.makeRule(this.string,   null,   "PREC_NONE"),
+    ["TOKEN_NUMBER"]        : this.makeRule(this.number,   null,   "PREC_NONE"),
+    ["TOKEN_AND"]           : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_CLASS"]         : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_ELSE"]          : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_FALSE"]         : this.makeRule(this.literal,  null,   "PREC_NONE"),
+    ["TOKEN_FOR"]           : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_FUN"]           : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_IF"]            : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_NIL"]           : this.makeRule(this.literal,  null,   "PREC_NONE"),
+    ["TOKEN_OR"]            : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_PRINT"]         : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_RETURN"]        : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_SUPER"]         : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_THIS"]          : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_TRUE"]          : this.makeRule(this.literal,  null,   "PREC_NONE"),
+    ["TOKEN_VAR"]           : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_WHILE"]         : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_ERROR"]         : this.makeRule(null,     null,   "PREC_NONE"),
+    ["TOKEN_EOF"]           : this.makeRule(null,     null,   "PREC_NONE"),
+  };
+
   private current!: Token;
   private previous!: Token;
   private hadError: boolean = false;
   private panicMode: boolean = false;
+
+  private literal(): Expr {
+    switch (this.previous.type) {
+      case "TOKEN_FALSE": return new LiteralExpr(false);
+      case "TOKEN_TRUE": return new LiteralExpr(true);
+      case "TOKEN_NIL": return new LiteralExpr(null);
+      default: throw new Error("Unreachable"); // TODO: make this prettier
+    }
+  }
+
+  private binary(): Expr {
+    const operatorType: TokenType = this.previous.type;
+    const rule = this.getRule(operatorType);
+    this.parsePrecedence(rule->precedence + 1);
+  
+    switch (operatorType) {
+      case "TOKEN_BANG_EQUAL":  emitBytes(OP_EQUAL, OP_NOT); break;
+      case "TOKEN_EQUAL_EQUAL":  emitByte(OP_EQUAL); break;
+      case "TOKEN_GREATER":  emitByte(OP_GREATER); break;
+      case "TOKEN_GREATER_EQUAL":  emitBytes(OP_LESS, OP_NOT); break;
+      case "TOKEN_LESS":  emitByte(OP_LESS); break;
+      case "TOKEN_LESS_EQUAL":  emitBytes(OP_GREATER, OP_NOT); break;
+      case "TOKEN_PLUS":  emitByte(OP_ADD); break;
+      case "TOKEN_MINUS": emitByte(OP_SUBTRACT); break;
+      case "TOKEN_STAR":  emitByte(OP_MULTIPLY); break;
+      case "TOKEN_SLASH": emitByte(OP_DIVIDE); break;
+      default: return;
+    }
+  }
+  
+  private expression(): Expr {
+    return this.parsePrecedence("PREC_ASSIGNMENT");
+  }
+  
+  private grouping(): Expr {
+    const expr = this.expression();
+    this.consume("TOKEN_RIGHT_PAREN", "Expect ')' after expression.");
+    return new GroupingExpr(expr);
+  }
+  
+  // TODO: maybe join with literal
+  private number(): Expr {
+    return new LiteralExpr(this.previous.literal); // TODO: check if use previous or current
+  }
+  
+  // TODO: maybe join with literal
+  private string(): Expr {
+    return new LiteralExpr(this.previous.literal); // TODO: check if use previous or current
+  }
+  
+  private unary(): Expr {
+    const operatorType: TokenType = this.previous.type;
+  
+    // Compile the operand
+    this.parsePrecedence("PREC_UNARY");
+  
+    switch (operatorType) {
+      case "TOKEN_BANG": new LogicalExpr(); break;
+      case "TOKEN_MINUS": emitByte(OP_NEGATE); break;
+      default: throw new Error();
+    }
+  }
+
+  private getRule(type: TokenType): ParseRule {
+    return this.rules[type];
+  }
+
+  private makeRule(prefix: ParseFn | null, infix: ParseFn | null, precedence: Precedence): ParseRule {
+    return { prefix, infix, precedence };
+  }
 }
 
 export type ParseFn = () => {};
 
 export type ParseRule = {
-  prefix: ParseFn;
-  infix : ParseFn;
+  prefix: ParseFn | null;
+  infix : ParseFn | null;
   precedence: Precedence;
 }
 
@@ -74,32 +189,6 @@ static void consume(TokenType type, const char *message) {
   errorAtCurrent(message);
 }
 
-static void emitByte(uint8_t byte) {
-  writeChunk(currentChunk(), byte, parser.previous.line);
-}
-
-static void emitBytes(uint8_t byte1, uint8_t byte2) {
-  emitByte(byte1);
-  emitByte(byte2);
-}
-
-static void emitReturn() {
-  emitByte(OP_RETURN);
-}
-
-static uint8_t makeConstant(Value value) {
-  int constant = addConstant(currentChunk(), value);
-  if (constant > UINT8_MAX) {
-    error("Too many constants in one chunk");
-    return 0;
-  }
-
-  return (uint8_t)constant;
-}
-
-static void emitConstant(Value value) {
-  emitBytes(OP_CONSTANT, makeConstant(value));
-}
 
 static void endCompiler() {
   emitReturn();
@@ -110,117 +199,14 @@ static void endCompiler() {
 #endif
 }
 
-static void expression();
-static ParseRule* getRule(TokenType type);
-static void parsePrecedence(Precedence precedence);
 
-static void binary() {
-  TokenType operatorType = parser.previous.type;
-  ParseRule* rule = getRule(operatorType);
-  parsePrecedence((Precedence)(rule->precedence + 1));
 
-  switch (operatorType) {
-    case TOKEN_BANG_EQUAL:  emitBytes(OP_EQUAL, OP_NOT); break;
-    case TOKEN_EQUAL_EQUAL:  emitByte(OP_EQUAL); break;
-    case TOKEN_GREATER:  emitByte(OP_GREATER); break;
-    case TOKEN_GREATER_EQUAL:  emitBytes(OP_LESS, OP_NOT); break;
-    case TOKEN_LESS:  emitByte(OP_LESS); break;
-    case TOKEN_LESS_EQUAL:  emitBytes(OP_GREATER, OP_NOT); break;
-    case TOKEN_PLUS:  emitByte(OP_ADD); break;
-    case TOKEN_MINUS: emitByte(OP_SUBTRACT); break;
-    case TOKEN_STAR:  emitByte(OP_MULTIPLY); break;
-    case TOKEN_SLASH: emitByte(OP_DIVIDE); break;
-    default: return;
-  }
-}
 
-static void literal() {
-  switch (parser.previous.type) {
-    case TOKEN_FALSE: emitByte(OP_FALSE); break;
-    case TOKEN_NIL: emitByte(OP_NIL); break;
-    case TOKEN_TRUE: emitByte(OP_TRUE); break;
-    default: return;
-  }
-}
 
-static void expression() {
-  parsePrecedence(PREC_ASSIGNMENT);
-}
-
-static void grouping() {
-  expression();
-  consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
-}
-
-static void number() {
-  double value = strtod(parser.previous.start, NULL);
-  emitConstant(NUMBER_VAL(value));
-}
-
-static void string() {
-  emitConstant(OBJ_VAL(copyString(parser.previous.start + 1, parser.previous.length - 2)));
-}
-
-static void unary() {
-  TokenType operatorType = parser.previous.type;
-
-  // Compile the operand
-  parsePrecedence(PREC_UNARY);
-
-  switch (operatorType) {
-    case TOKEN_BANG: emitByte(OP_NOT); break;
-    case TOKEN_MINUS: emitByte(OP_NEGATE); break;
-    default: return;
-  }
-}
-
-ParseRule rules[] = {
-  [TOKEN_LEFT_PAREN]    = {grouping, NULL,   PREC_NONE},
-  [TOKEN_RIGHT_PAREN]   = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_LEFT_BRACE]    = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_RIGHT_BRACE]   = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_COMMA]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_DOT]           = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_MINUS]         = {unary,    binary, PREC_TERM},
-  [TOKEN_PLUS]          = {NULL,     binary, PREC_TERM},
-  [TOKEN_SEMICOLON]     = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_SLASH]         = {NULL,     binary, PREC_FACTOR},
-  [TOKEN_STAR]          = {NULL,     binary, PREC_FACTOR},
-  [TOKEN_BANG]          = {unary,    NULL,   PREC_NONE},
-  [TOKEN_BANG_EQUAL]    = {NULL,     binary, PREC_EQUALITY},
-  [TOKEN_EQUAL]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_EQUAL_EQUAL]   = {NULL,     binary, PREC_EQUALITY},
-  [TOKEN_GREATER]       = {NULL,     binary, PREC_COMPARISON},
-  [TOKEN_GREATER_EQUAL] = {NULL,     binary, PREC_COMPARISON},
-  [TOKEN_LESS]          = {NULL,     binary, PREC_COMPARISON},
-  [TOKEN_LESS_EQUAL]    = {NULL,     binary, PREC_COMPARISON},
-  [TOKEN_IDENTIFIER]    = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_STRING]        = {string,   NULL,   PREC_NONE},
-  [TOKEN_NUMBER]        = {number,   NULL,   PREC_NONE},
-  [TOKEN_AND]           = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_CLASS]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_ELSE]          = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_FALSE]         = {literal,  NULL,   PREC_NONE},
-  [TOKEN_FOR]           = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_FUN]           = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_IF]            = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_NIL]           = {literal,  NULL,   PREC_NONE},
-  [TOKEN_OR]            = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_PRINT]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_RETURN]        = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_SUPER]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_THIS]          = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_TRUE]          = {literal,  NULL,   PREC_NONE},
-  [TOKEN_VAR]           = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_WHILE]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_ERROR]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_EOF]           = {NULL,     NULL,   PREC_NONE},
-};
-
-static void parsePrecedence(Precedence precedence) {
+static void parsePrecedence(Precedence "PRECedence) {
   advance();
   ParseFn prefixRule = getRule(parser.previous.type)->prefix;
-  if (prefixRule == NULL) {
+  if (prefixRule == null) {
     error("Expect expression.");
     return;
   }
@@ -234,9 +220,7 @@ static void parsePrecedence(Precedence precedence) {
   }
 }
 
-static ParseRule* getRule(TokenType type) {
-  return &rules[type];
-}
+
 
 bool compile(const char* source, Chunk* chunk) {
   initScanner(source);

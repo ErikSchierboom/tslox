@@ -2,22 +2,22 @@ import { Literal, Span, Token, TokenType } from "./Tokens";
 
 export class Scanner {
   static keywords: { [key: string]: TokenType } = {
-    and: "AND",
-    class: "CLASS",
-    else: "ELSE",
-    false: "FALSE",
-    for: "FOR",
-    fun: "FUN",
-    if: "IF",
-    nil: "NIL",
-    or: "OR",
-    print: "PRINT",
-    return: "RETURN",
-    super: "SUPER",
-    this: "THIS",
-    true: "TRUE",
-    var: "VAR",
-    while: "WHILE",
+    and: "TOKEN_AND",
+    class: "TOKEN_CLASS",
+    else: "TOKEN_ELSE",
+    false: "TOKEN_FALSE",
+    for: "TOKEN_FOR",
+    fun: "TOKEN_FUN",
+    if: "TOKEN_IF",
+    nil: "TOKEN_NIL",
+    or: "TOKEN_OR",
+    print: "TOKEN_PRINT",
+    return: "TOKEN_RETURN",
+    super: "TOKEN_SUPER",
+    this: "TOKEN_THIS",
+    true: "TOKEN_TRUE",
+    var: "TOKEN_VAR",
+    while: "TOKEN_WHILE",
   };
 
   private start = 0;
@@ -34,7 +34,7 @@ export class Scanner {
       const token = this.scanToken();
       tokens.push(token);
 
-      if (token.type == "EOF") break;
+      if (token.type == "TOKEN_EOF") break;
     }
 
     return tokens;
@@ -44,7 +44,7 @@ export class Scanner {
     this.skipWhitespace();
     this.start = this.current;
 
-    if (this.isAtEnd()) return this.makeToken("EOF");
+    if (this.isAtEnd()) return this.makeToken("TOKEN_EOF");
 
     const c = this.advance();
 
@@ -55,33 +55,41 @@ export class Scanner {
       case "(":
         return this.makeToken("TOKEN_LEFT_PAREN");
       case ")":
-        return this.makeToken("RIGHT_PAREN");
+        return this.makeToken("TOKEN_RIGHT_PAREN");
       case "{":
-        return this.makeToken("LEFT_BRACE");
+        return this.makeToken("TOKEN_LEFT_BRACE");
       case "}":
-        return this.makeToken("RIGHT_BRACE");
+        return this.makeToken("TOKEN_RIGHT_BRACE");
       case ";":
-        return this.makeToken("SEMICOLON");
+        return this.makeToken("TOKEN_SEMICOLON");
       case ",":
-        return this.makeToken("COMMA");
+        return this.makeToken("TOKEN_COMMA");
       case ".":
-        return this.makeToken("DOT");
+        return this.makeToken("TOKEN_DOT");
       case "-":
-        return this.makeToken("MINUS");
+        return this.makeToken("TOKEN_MINUS");
       case "+":
-        return this.makeToken("PLUS");
+        return this.makeToken("TOKEN_PLUS");
       case "/":
-        return this.makeToken("SLASH");
+        return this.makeToken("TOKEN_SLASH");
       case "*":
-        return this.makeToken("STAR");
+        return this.makeToken("TOKEN_STAR");
       case "!":
-        return this.makeToken(this.match("=") ? "BANG_EQUAL" : "BANG");
+        return this.makeToken(
+          this.match("=") ? "TOKEN_BANG_EQUAL" : "TOKEN_BANG"
+        );
       case "=":
-        return this.makeToken(this.match("=") ? "EQUAL_EQUAL" : "EQUAL");
+        return this.makeToken(
+          this.match("=") ? "TOKEN_EQUAL_EQUAL" : "TOKEN_EQUAL"
+        );
       case "<":
-        return this.makeToken(this.match("=") ? "LESS_EQUAL" : "LESS");
+        return this.makeToken(
+          this.match("=") ? "TOKEN_LESS_EQUAL" : "TOKEN_LESS"
+        );
       case ">":
-        return this.makeToken(this.match("=") ? "GREATER_EQUAL" : "GREATER");
+        return this.makeToken(
+          this.match("=") ? "TOKEN_GREATER_EQUAL" : "TOKEN_GREATER"
+        );
       case '"':
         return this.string();
     }
@@ -126,7 +134,7 @@ export class Scanner {
     }
 
     return this.makeToken(
-      "NUMBER",
+      "TOKEN_NUMBER",
       Number.parseFloat(this.source.substring(this.start, this.current))
     );
   }
@@ -140,52 +148,52 @@ export class Scanner {
   private identifierType(): TokenType {
     switch (this.source[this.start]) {
       case "a":
-        return this.checkKeyword(1, 2, "nd", "AND");
+        return this.checkKeyword(1, 2, "nd", "TOKEN_AND");
       case "c":
-        return this.checkKeyword(1, 4, "lass", "CLASS");
+        return this.checkKeyword(1, 4, "lass", "TOKEN_CLASS");
       case "e":
-        return this.checkKeyword(1, 3, "lse", "ELSE");
+        return this.checkKeyword(1, 3, "lse", "TOKEN_ELSE");
       case "f":
         if (this.current - this.start > 1) {
           switch (this.source[this.start + 1]) {
             case "a":
-              return this.checkKeyword(2, 3, "lse", "FALSE");
+              return this.checkKeyword(2, 3, "lse", "TOKEN_FALSE");
             case "o":
-              return this.checkKeyword(2, 1, "r", "FOR");
+              return this.checkKeyword(2, 1, "r", "TOKEN_FOR");
             case "u":
-              return this.checkKeyword(2, 1, "n", "FUN");
+              return this.checkKeyword(2, 1, "n", "TOKEN_FUN");
           }
         }
         break;
       case "i":
-        return this.checkKeyword(1, 1, "f", "IF");
+        return this.checkKeyword(1, 1, "f", "TOKEN_IF");
       case "n":
-        return this.checkKeyword(1, 2, "il", "NIL");
+        return this.checkKeyword(1, 2, "il", "TOKEN_NIL");
       case "o":
-        return this.checkKeyword(1, 1, "r", "OR");
+        return this.checkKeyword(1, 1, "r", "TOKEN_OR");
       case "p":
-        return this.checkKeyword(1, 4, "rint", "PRINT");
+        return this.checkKeyword(1, 4, "rint", "TOKEN_PRINT");
       case "r":
-        return this.checkKeyword(1, 5, "eturn", "RETURN");
+        return this.checkKeyword(1, 5, "eturn", "TOKEN_RETURN");
       case "s":
-        return this.checkKeyword(1, 4, "uper", "SUPER");
+        return this.checkKeyword(1, 4, "uper", "TOKEN_SUPER");
       case "t":
         if (this.current - this.start > 1) {
           switch (this.source[this.start + 1]) {
             case "h":
-              return this.checkKeyword(2, 2, "is", "THIS");
+              return this.checkKeyword(2, 2, "is", "TOKEN_THIS");
             case "r":
-              return this.checkKeyword(2, 2, "ue", "TRUE");
+              return this.checkKeyword(2, 2, "ue", "TOKEN_TRUE");
           }
         }
         break;
       case "v":
-        return this.checkKeyword(1, 2, "ar", "VAR");
+        return this.checkKeyword(1, 2, "ar", "TOKEN_VAR");
       case "w":
-        return this.checkKeyword(1, 4, "hile", "WHILE");
+        return this.checkKeyword(1, 4, "hile", "TOKEN_WHILE");
     }
 
-    return "IDENTIFIER";
+    return "TOKEN_IDENTIFIER";
   }
 
   private string(): Token {
@@ -199,7 +207,7 @@ export class Scanner {
     this.advance();
 
     const value = this.source.substring(this.start + 1, this.current - 1);
-    return this.makeToken("STRING", value);
+    return this.makeToken("TOKEN_STRING", value);
   }
 
   private checkKeyword(
@@ -216,11 +224,11 @@ export class Scanner {
       return type;
     }
 
-    return "IDENTIFIER";
+    return "TOKEN_IDENTIFIER";
   }
 
   private errorToken(message: string): Token {
-    return this.makeToken("ERROR", message);
+    return this.makeToken("TOKEN_ERROR", message);
   }
 
   private makeToken(type: TokenType, literal: Literal = null): Token {

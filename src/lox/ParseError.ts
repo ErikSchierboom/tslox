@@ -7,7 +7,7 @@ export class ParseError extends Error {
 
   static atToken(token: Token, message: string): ParseError {
     const expandedMessage =
-      token.type == "EOF"
+      token.type == "TOKEN_EOF"
         ? `Error at end: ${message}`
         : `Error at '${token.lexeme}': ${message}`;
     return new ParseError(token.span, expandedMessage);
