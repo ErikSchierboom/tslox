@@ -1,5 +1,12 @@
-import { Expr, GroupingExpr, LiteralExpr, LogicalExpr } from "./Expr";
-import { ParseError } from "./ParseError";
+import {
+  BinaryExpr,
+  Expr,
+  GroupingExpr,
+  LiteralExpr,
+  LogicalExpr,
+  UnaryExpr,
+} from "./Expr";
+import { Scanner } from "./Scanner";
 import { Token, TokenType } from "./Tokens";
 
 export type Precedence =
@@ -64,6 +71,8 @@ export class Parser {
   private hadError = false;
   private panicMode = false;
 
+  constructor(private readonly scanner: Scanner) {}
+
   private literal(): Expr {
     switch (this.previous.type) {
       case "TOKEN_FALSE":
@@ -78,48 +87,38 @@ export class Parser {
   }
 
   private binary(): Expr {
-    const operatorType: TokenType = this.previous.type;
+    const operatorType = this.previous.type;
     const rule = this.getRule(operatorType);
     this.parsePrecedence(rule.precedence + 1);
 
     switch (operatorType) {
       case "TOKEN_BANG_EQUAL":
-        emitBytes(OP_EQUAL, OP_NOT);
-        break;
+        return new BinaryExpr(null, operatorType, this.current);
       case "TOKEN_EQUAL_EQUAL":
-        emitByte(OP_EQUAL);
-        break;
+        return new BinaryExpr(null, operatorType, this.current);
       case "TOKEN_GREATER":
-        emitByte(OP_GREATER);
-        break;
+        return new BinaryExpr(null, operatorType, this.current);
       case "TOKEN_GREATER_EQUAL":
-        emitBytes(OP_LESS, OP_NOT);
-        break;
+        return new BinaryExpr(null, operatorType, this.current);
       case "TOKEN_LESS":
-        emitByte(OP_LESS);
-        break;
+        return new BinaryExpr(null, operatorType, this.current);
       case "TOKEN_LESS_EQUAL":
-        emitBytes(OP_GREATER, OP_NOT);
-        break;
+        return new BinaryExpr(null, operatorType, this.current);
       case "TOKEN_PLUS":
-        emitByte(OP_ADD);
-        break;
+        return new BinaryExpr(null, operatorType, this.current);
       case "TOKEN_MINUS":
-        emitByte(OP_SUBTRACT);
-        break;
+        return new BinaryExpr(null, operatorType, this.current);
       case "TOKEN_STAR":
-        emitByte(OP_MULTIPLY);
-        break;
+        return new BinaryExpr(null, operatorType, this.current);
       case "TOKEN_SLASH":
-        emitByte(OP_DIVIDE);
-        break;
+        return new BinaryExpr(null, operatorType, this.current);
       default:
-        return;
+        throw new Error(); // TODO: check
     }
   }
 
   private expression(): Expr {
-    return this.parsePrecedence("PREC_ASSIGNMENT");
+    return this.parsePrecedence("PREC_ASSIGNMENT")!;
   }
 
   private grouping(): Expr {
@@ -139,18 +138,16 @@ export class Parser {
   }
 
   private unary(): Expr {
-    const operatorType: TokenType = this.previous.type;
+    const operator = this.previous;
 
     // Compile the operand
-    this.parsePrecedence("PREC_UNARY");
+    const operand = this.parsePrecedence("PREC_UNARY");
 
-    switch (operatorType) {
+    switch (operator.type) {
       case "TOKEN_BANG":
-        new LogicalExpr();
-        break;
+        return new UnaryExpr(operator, operand!);
       case "TOKEN_MINUS":
-        emitByte(OP_NEGATE);
-        break;
+        return new UnaryExpr(operator, operand!);
       default:
         throw new Error();
     }
@@ -159,11 +156,12 @@ export class Parser {
   private advance(): void {
     this.previous = this.current;
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       this.current = this.scanner.scanToken();
       if (this.current.type != "TOKEN_ERROR") break;
 
-      this.errorAtCurrent(this.current.start);
+      this.errorAtCurrent(this.current.lexeme);
     }
   }
 
@@ -176,24 +174,26 @@ export class Parser {
     this.errorAtCurrent(message);
   }
 
-  private parsePrecedence(precedence: Precedence): void {
+  private parsePrecedence(precedence: Precedence): Expr | null {
     this.advance();
     const prefixRule = this.getRule(this.previous.type).prefix;
     if (prefixRule == null) {
       this.error("Expect expression.");
-      return;
+      return null;
     }
 
-    this.prefixRule();
+    let expr = prefixRule();
 
     while (precedence <= this.getRule(this.current.type).precedence) {
       this.advance();
       const infixRule = this.getRule(this.previous.type).infix;
-      infixRule();
+      expr = infixRule!();
     }
+
+    return expr;
   }
 
-  private compile(source: string): boolean {
+  private compile(): boolean {
     this.hadError = false;
     this.panicMode = false;
 
@@ -219,18 +219,15 @@ export class Parser {
     if (this.panicMode) return;
     this.panicMode = true;
 
-    // TODO: get errors
-    // fprintf(stderr, "[line %d] Error", token->line);
-
-    // if (token->type == TOKEN_EOF) {
-    //   fprintf(stderr, " at end");
-    // } else if (token->type == TOKEN_ERROR) {
-    //   // Nothing
-    // } else {
-    //   fprintf(stderr, " at '%.*s'", token->length, token->start);
-    // }
-
-    // fprintf(stderr, ": %s\n", message);
+    process.stderr.write(`[line ${token.span.line}] Error`);
+    if (token.type === "TOKEN_EOF") {
+      process.stderr.write(" at end");
+    } else if (token.type == "TOKEN_ERROR") {
+      // Nothing
+    } else {
+      process.stderr.write(` at '${token.lexeme}'`);
+    }
+    process.stderr.write(`: ${message}\n`);
     this.hadError = true;
   }
 
@@ -243,7 +240,7 @@ export class Parser {
   }
 }
 
-export type ParseFn = () => {};
+export type ParseFn = () => Expr;
 
 export type ParseRule = {
   prefix: ParseFn | null;
