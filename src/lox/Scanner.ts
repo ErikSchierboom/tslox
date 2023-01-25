@@ -138,51 +138,11 @@ export class Scanner {
   }
 
   private identifierType(): TokenType {
-    switch (this.source[this.start]) {
-      case "a":
-        return this.checkKeyword(1, 2, "nd", "AND");
-      case "c":
-        return this.checkKeyword(1, 4, "lass", "CLASS");
-      case "e":
-        return this.checkKeyword(1, 3, "lse", "ELSE");
-      case "f":
-        if (this.current - this.start > 1) {
-          switch (this.source[this.start + 1]) {
-            case "a":
-              return this.checkKeyword(2, 3, "lse", "FALSE");
-            case "o":
-              return this.checkKeyword(2, 1, "r", "FOR");
-            case "u":
-              return this.checkKeyword(2, 1, "n", "FUN");
-          }
-        }
-        break;
-      case "i":
-        return this.checkKeyword(1, 1, "f", "IF");
-      case "n":
-        return this.checkKeyword(1, 2, "il", "NIL");
-      case "o":
-        return this.checkKeyword(1, 1, "r", "OR");
-      case "p":
-        return this.checkKeyword(1, 4, "rint", "PRINT");
-      case "r":
-        return this.checkKeyword(1, 5, "eturn", "RETURN");
-      case "s":
-        return this.checkKeyword(1, 4, "uper", "SUPER");
-      case "t":
-        if (this.current - this.start > 1) {
-          switch (this.source[this.start + 1]) {
-            case "h":
-              return this.checkKeyword(2, 2, "is", "THIS");
-            case "r":
-              return this.checkKeyword(2, 2, "ue", "TRUE");
-          }
-        }
-        break;
-      case "v":
-        return this.checkKeyword(1, 2, "ar", "VAR");
-      case "w":
-        return this.checkKeyword(1, 4, "hile", "WHILE");
+    const text = this.source.substring(this.start, this.current);
+    const type = Scanner.keywords[text];
+
+    if (type !== undefined) {
+      return type;
     }
 
     return "IDENTIFIER";
@@ -200,23 +160,6 @@ export class Scanner {
 
     const value = this.source.substring(this.start + 1, this.current - 1);
     return this.makeToken("STRING", value);
-  }
-
-  private checkKeyword(
-    start: number,
-    length: number,
-    rest: string,
-    type: TokenType
-  ): TokenType {
-    if (
-      this.current - this.start == start + length &&
-      this.source.substring(this.start + start, this.start + start + length) ===
-        rest
-    ) {
-      return type;
-    }
-
-    return "IDENTIFIER";
   }
 
   private errorToken(message: string): Token {
